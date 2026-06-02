@@ -1,10 +1,12 @@
+import os
+import pandas as pd
+from openpyxl import load_workbook
 def read_legacy(path):
     """
     Reads 2020-2023.xlsx.
     Each raw data tab is a separate year/tournament.
     Returns dict of {tab_name: dataframe}.
     """
-    from openpyxl import load_workbook
     wb = load_workbook(path, read_only=True)
     
     # Only grab raw data tabs, skip metadata tabs
