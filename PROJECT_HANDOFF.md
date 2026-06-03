@@ -1,324 +1,366 @@
-# Identity V Esports Analysis — Project Handoff
+# Identity V Skill Decay Analysis — Project Handoff
 
-## Project Overview
+## The Research Question
 
-A statistical analysis of competitive Identity V esports across 6 years of tournament data (IVL, IJL, COA from 2020-2025). The goal is to build a quant-style multi-component analysis demonstrating mixed effects modeling, shrinkage estimation, variance decomposition, and time-varying skill estimation. Designed as a portfolio project for quantitative trading/research internship recruiting (Jane Street Insight, summer 2027 QT/QR roles).
+**How quickly does information about competitive skill become obsolete in a high-frequency esports environment?**
 
-### About Identity V
+Operationalized: find the optimal exponential time-decay rate for weighting historical match outcomes when predicting future outcomes. The half-life of this decay is the answer.
 
-Asymmetric 1v4 game: one player as the Hunter, four as Survivors. A match consists of two halves (the team that played Hunter swaps roles in the second half). Outcomes are scored by remaining generators (gens). Pro play uses a multi-phase ban/pick draft of characters and maps.
+This is structurally identical to the **alpha decay** problem in quantitative trading — every signal a fund discovers stops working at some rate, and measuring that rate is one of the central problems in systematic strategy research. The project is framed throughout as a methodologically-rigorous analog to that problem, with explicit framing in the README aimed at quant trading/research recruiters.
 
-### The Four Models
+### Primary Deliverable
 
-1. **Bradley-Terry skill ratings (player-level)** — Latent skill parameter per (player, role). Roster changes handled automatically since ratings attach to players, not teams. MLE via `scipy.optimize` with L2 regularization for sparse players.
+A single plot: out-of-sample predictive log-loss vs decay half-life across a swept range, with an identified optimum and a confidence band. The headline finding is a sentence like *"Skill information has an optimal half-life of X months for predicting Identity V pro match outcomes."*
 
-2. **Mixed effects logistic regression** — Outcome modeled with random effects for player skill, fixed effects for map, draft features, era. Era × character and era × map interactions capture meta evolution. Random effects provide shrinkage for sparse players (statistical analog of portfolio covariance shrinkage).
+### Author Context
 
-3. **Variance decomposition** — Decomposes outcome variance into player skill, draft, map, era, and residual components. The big interpretive output of the project: "what fraction of competitive outcomes is skill vs draft vs noise?"
-
-4. **Hunter efficiency metric** — Per-player residual performance after subtracting character × map population baseline. Analog to alpha in factor models. Restricted to 2024秋 onward due to data availability.
-
-### Evaluation Strategy
-
-Temporal cross-validation only (`sklearn.TimeSeriesSplit`). Random splits would leak future into training, which is the standard lookahead bias trap in quant. Metrics: log-loss (primary, measures probability calibration), accuracy, AUC-ROC, and calibration curves.
-
-### Quant Framing (For Interviews and README)
-
-- Player skill ratings ↔ alpha estimation
-- Random effects shrinkage ↔ portfolio covariance shrinkage
-- Variance decomposition ↔ factor model attribution
-- Era interactions ↔ alpha decay / regime change
-- Recency-weighted estimation ↔ exponential decay in trading signals
-- Temporal cross-validation ↔ backtest methodology, no lookahead bias
+User is a Brown sophomore (Math-CS, 4.0 GPA), applying to Jane Street Insight (deadline June 14, applying without this project) and main 2027 quant recruiting opening July 1. PROMYS counselor starts June 21 — limited time during. **Effective focused work time before PROMYS: roughly 3 weeks (today is early June).** Project should be presentable on GitHub with clean code and a strong README by end of June.
 
 ---
 
-## Data Architecture
+## Project Scope (Carefully Constrained)
+
+### The Three Components
+
+**Component 1 — Time-weighted Bradley-Terry skill ratings.** A modified Bradley-Terry MLE with exponential weights on historical matches. Player-level ratings indexed by `(player_id, role)` tuple. L2 regularization for sparse players.
+
+**Component 2 — Half-life sweep with temporal cross-validation.** Sweep decay half-life over a log-spaced range. For each candidate, fit Bradley-Terry on the training period and evaluate log-loss on a strictly-future validation period. Plot the curve, identify the optimum.
+
+**Component 3 (stretch).** Decompose the decay rate across populations: role (hunter vs survivor), competitive tier (IVL vs IJL vs COA), and time (has the meta sped up?). Each is a self-contained additional analysis.
+
+### What's Explicitly Out Of Scope
+
+Do **not** build any of these unless every other component is complete and time remains:
+
+- Mixed effects / variance decomposition model
+- Hunter efficiency metric
+- Era × character interactions
+- Map effects, draft effects, player playstyle analysis
+- Any per-survivor stats (repairs, rescues, heals, etc.)
+
+These were in an earlier project plan and got cut for scope. The user has 3 focused weeks — depth over breadth.
+
+---
+
+## Minimal Data Schema
+
+The core insight that scoped this project: the decay analysis only needs match outcomes, not detailed stats. **Use only 6 fields per game half:**
+
+```sql
+CREATE TABLE matches (
+    match_id INTEGER PRIMARY KEY,
+    date TEXT NOT NULL,             -- ISO format YYYY-MM-DD
+    tournament TEXT,                -- 'IVL_2024_summer_regular', 'COA9_groups', etc
+    hunter_player TEXT NOT NULL,    -- canonical ID
+    survivor1_player TEXT,
+    survivor2_player TEXT,
+    survivor3_player TEXT,
+    survivor4_player TEXT,
+    hunter_wins INTEGER NOT NULL,   -- 1 if hunter won, 0 if survivor side won
+    
+    -- Debugging metadata, not used in modeling
+    source_file TEXT,
+    source_row INTEGER
+);
+
+CREATE TABLE players (
+    canonical_id TEXT PRIMARY KEY,
+    known_roles TEXT,               -- 'hunter' | 'survivor' | 'both'
+    first_seen TEXT,
+    last_seen TEXT,
+    n_games INTEGER
+);
+```
+
+That's it. No player_stats table, no games-vs-player_stats join, no map/character columns. Only what the model uses.
+
+### Why This Scope Matters
+
+Carrying 80 columns "in case you need them" costs debugging cycles even when unused. The full alias dictionary (~140 entries) maps many columns we don't need — that's fine, the alias dictionary stays intact for future extensions, but **only extract the 6 modeling columns into SQLite**.
+
+If the user later wants map effects or character analysis, the raw Excel files are preserved and re-extraction is straightforward. Don't optimize for hypothetical future needs.
+
+### Source Coverage
+
+For the matches table, use the modern `原始数据` sheets AND legacy raw tabs. Skip the modern `赛后数据` sheets entirely — they're redundant for outcome data and add complexity (cross-sheet joins, inconsistent hunter stat availability) we don't need.
+
+### Draws
+
+A small fraction of matches end in `平` (draws). Drop them for modeling — Bradley-Terry assumes binary outcomes. Document the drop count in the writeup.
+
+---
+
+## Data Architecture Reference
 
 ### Source Files (in `data/raw/`)
 
 ```
-2020-2023.xlsx                      # Legacy file, year/tournament as separate tabs
-2024IVL夏季赛常规赛.xlsx              # Modern files: one season per file
+2020-2023.xlsx                      # Legacy file, year/tournament as tabs
+2024IVL夏季赛常规赛.xlsx              # Modern files, one per season
 2024IVL夏季赛季后赛.xlsx
 2024IVL秋季赛常规赛.xlsx
 2024IVL秋季赛季后赛.xlsx
-2025IVL[夏季/秋季][常规/季后].xlsx     # 8 files total for IVL
+2025IVL[夏季/秋季][常规/季后].xlsx     # 8 files for IVL
 2024IJL夏季赛常规赛.xlsx              # IJL files
 2024IJL秋季赛季后赛.xlsx
 2025IJL[夏季/秋季][常规/季后].xlsx     # 6 files for IJL
-COA8 全球总决赛小组赛.xlsx            # COA main events
+COA8 全球总决赛小组赛.xlsx            # COA international events
 COA8 全球总决赛淘汰赛.xlsx
 COA9 全球总决赛小组赛.xlsx
 COA9 全球总决赛淘汰赛.xlsx
 ```
 
-**Excluded:** `2025IVS.xlsx`, `COA8 日本赛区预选赛.xlsx`, `COA9 日本赛区预选赛.xlsx` (regional qualifiers — different competitive population, small sample, would add noise).
+**Excluded:** `2025IVS.xlsx`, both Japan qualifier files (regional, small sample, different competitive population).
 
-**Missing:** COA7 — no data available, documented in README.
+**Missing:** COA7 — no data available. Document in README.
 
-### Format Differences
+### Legacy file structure
 
-**Legacy file (2020-2023.xlsx):**
-- Multiple tabs per file: `2020原始`, `COA4`, `2021原始`, `COA5`, `2022原始`, `COA6`, `2023原始`
-- Also has `曾用id` tab (player alias history — must be loaded for player ID normalization)
+- Tabs: `2020原始`, `2021原始`, `2022原始`, `2023原始`, `COA4`, `COA5`, `COA6`
+- Also contains `曾用id` tab — player alias history. **Critical: must be parsed for player ID normalization.**
 - Header row 0
-- Each tab combines game-level data and player-level data in ONE sheet
+- Each tab combines game-level and player-level data into one sheet
 
-**Modern files (2024+):**
+### Modern file structure
+
+- Multiple sheets, but **only `原始数据` is used** for this project
+- Header row varies; auto-detect with marker columns
 - One file per tournament season
-- Multiple sheets: `原始数据` (game-level), `赛后数据` (player-level stats), `对局数据` (in-game events, not yet used)
-- Header row varies (usually 0 or 1) — auto-detected
-- 2024 IVL/IJL summer + select fall files lack hunter aggregate stats in 赛后数据 (no hunter ID, hits, knockdowns) — only 14 modern files have full hunter data
-
-### Schema Evolution Across Years
-
-| Concept | 2020 | 2021 | 2022 | 2023 | 2024+ |
-|---|---|---|---|---|---|
-| Game halves (上/下) | ❌ | ✓ | ✓ | ✓ | ✓ |
-| Survivor team identifier | ❌ | ✓ | ✓ | ✓ | ✓ |
-| Per-player rescues | ❌ | ✓ | ✓ | ✓ | ✓ |
-| Board breaks per player | ❌ | ❌ | ❌ | ✓ | ✓ |
-| Heals per player | ❌ | ❌ | ❌ | ✓ | ✓ |
-| Hunter aggregate stats | ❌ | ❌ | ❌ | ❌ | partial |
-
-**Modeling implication:**
-- Bradley-Terry skill: use all 6 years
-- Mixed effects variance decomp: use 2021+ (need game halves)
-- Hunter efficiency metric: use 2024 fall onward only (14 modern files)
 
 ### Column Naming Inconsistency
 
-Three generations of column naming exist; the normalization dictionary unifies all of them:
+Three generations of column naming exist. The alias dictionary unifies all of them.
 
 | Concept | 2020-2022 | 2023 | 2024 | 2025/COA9 |
 |---|---|---|---|---|
 | Survivor ID | `求生者1ID` | `求生者1ID` | `求生者1ID` | `人ID1` |
-| Survivor character | `使用角色` | `角色` | `角色` | `角色` |
-| Repairs | `修机进度` | `修机进度` | `修机进度` | `修机` |
-| Rescues | `救人数` | `救人数` | `救人数` | `救人` |
-| Heals | (none) | `治疗数` | `治疗数` | `治疗` |
-| Board breaks | (none) | `砸板命中` | `砸板命中` | `砸板` |
-| Harassment | `牵制时长` | `牵制时长` | `牵制时长` | `牵制` |
-| Hunter ID (赛后) | n/a | n/a | `屠名` (partial) | `屠ID` |
+| Winner | `胜利方` | `胜利方` | `胜利方` | `胜利方` |
+| Hunter player | `屠名` | `屠名` | `屠名` | `屠名` |
+| Date | various | various | from `月`+`日` cols | from `月`+`日` cols |
 
-### Tricky Quirks (Context-Dependent Column Meanings)
-
-- **`角色` (no suffix)** in legacy `原始数据`: MVP's character (junk). In modern `赛后数据`: survivor1's character.
-- **`角色.4`** in legacy: MVP character variant (junk). In modern `赛后数据`: hunter's character.
-- **`场次`**: match number, often only filled for first half of a series (~64% null is expected, not a bug — can be reconstructed from date + teams later).
-- **`总逃脱` and `逃生数`**: same data, both columns kept by data entry for QC. Use one, flag the other as `_qc_`.
-
-The legacy reader pre-renames `角色` and `角色.4` to `_qc_mvp_character_*` BEFORE normalization to handle this.
-
-### Player ID Issues
-
-- ~231 unique player IDs across modern data
-- Capitalization is inconsistent — must `.lower().strip()` all IDs
-- Some likely typo duplicates flagged by fuzzy match (e.g. `ppicha` vs `pipicha`)
-- Players occasionally change IDs between seasons — `曾用id` tab in legacy file tracks this (not yet parsed)
-- Most players are role-specialized; a few dual-role (e.g. `ppxia`) — give them separate ratings per role: index by `(player_id, role)` tuple
+The hunter and winner columns are consistent across all years. The survivor ID columns are the only tricky one for our minimal schema.
 
 ### Template Row Filtering
 
-Excel files have 700-1632 rows per sheet but most are pre-formatted empty template rows with default values like `0` and `0.0`. These can't be filtered with `dropna(how='all')` since they contain those default zeros. Filter using a "must be populated" anchor column. The `_drop_template_rows` helper tries `hunter_team`, `hunter_player`, `survivor1_player`, `home_team` in order.
+Excel files have 700-1632 rows per sheet but most are pre-formatted empty templates with default values (`0`, `0.0`). These can't be filtered with `dropna(how='all')` since they contain those defaults. Filter using a "must be populated" anchor column — `hunter_team` works for all sheets, falling back to `hunter_player`, `survivor1_player`, `home_team`.
 
-After filtering, expect roughly:
-- Legacy raw tabs: 300-500 rows each
-- Modern raw sheets: 200-250 rows each (a season has ~100-120 game halves typically)
-- Total dataset: ~4000-5000 game halves across all sources
+After filtering, expect roughly 4000-5000 game halves total across all sources.
+
+### Player IDs
+
+- ~231 unique IDs across modern data, more across legacy
+- Capitalization inconsistent — must `.lower().strip()` everything
+- Players change IDs between seasons — the `曾用id` tab tracks this
+- A few dual-role players (ppxia is one) — use `(player_id, role)` tuples as keys
+- The `曾用id` tab parsing is **the most important unfinished foundational task**
 
 ---
 
-## What's Done
+## What's Already Done
 
-A Jupyter exploration notebook `notebooks/01_explore.ipynb` containing:
+A Jupyter exploration notebook `notebooks/01_explore.ipynb` exists with working code for:
 
 1. File inventory and existence checks
-2. **Canonical column dictionary** (~140 entries) mapping Chinese variants to standardized English names — this is the most important artifact built so far
+2. **Canonical column dictionary** (~140 entries, Chinese → English standardization)
 3. Auto-detecting header reader functions (`read_legacy_tab`, `read_modern_sheet`)
 4. Template-row filtering using anchor columns
 5. Per-file and cross-file schema audits
 6. Column collision/duplicate detection
 7. Missing-value analysis
 8. Player ID audit with fuzzy duplicate detection
-9. Map and character coverage analysis
-
-The notebook is exploratory and inline. It needs to be migrated into proper modules.
 
 ### Known Working State
 
 - All 18 modern files + legacy file load and normalize cleanly
-- No remaining unresolved column collisions
-- Hunter character data: 0% missing in 原始数据 sheets
-- Survivor data: <5% missing across all years where columns exist
-- Hunter aggregate stats: missing for 4 early 2024 files (expected)
-- ~3960 game halves combined modern + ~1500 legacy (after template filtering)
+- No unresolved column collisions
+- Hunter character data: 0% missing in `原始数据` sheets
+- Survivor data: <5% missing across all years
+- ~3960 game halves combined modern + ~1500 legacy after template filtering
+
+### Quirks Encountered During Exploration
+
+- `角色` (no suffix) means survivor1's character in modern files but MVP's character in legacy. Legacy reader pre-renames it to `_qc_mvp_character` before normalization.
+- `角色.4` means hunter character in modern `赛后数据` but MVP variant in legacy. Same pre-rename solution.
+- `总逃脱` and `逃生数` are the same data — both in some files. One mapped to canonical, other to `_qc_`.
+- 2024 summer + early fall files lack hunter aggregate stats in `赛后数据`. Irrelevant for this project since we don't use that sheet.
 
 ---
 
-## Project Structure Setup
-
-The project root is already initialized as a git repo with a virtual environment:
+## Project Structure
 
 ```
 idv-analysis/
-├── venv/                  # Python virtual environment (activated)
+├── venv/                  # Python venv (activated)
 ├── data/
-│   ├── raw/              # All .xlsx files (read-only — DO NOT MODIFY)
-│   └── processed/        # Cleaned outputs go here
+│   ├── raw/              # All .xlsx files, READ ONLY
+│   └── processed/        # SQLite db goes here
 ├── notebooks/
-│   └── 01_explore.ipynb  # Exploration notebook (existing)
-├── src/                  # Empty — needs to be built
-├── outputs/              # For charts and reports
-└── README.md
+│   ├── 01_explore.ipynb  # Exploration (reference only, don't extend)
+│   └── 02_modeling.ipynb # Working notebook for model development
+├── src/
+│   ├── ingest.py         # File reading + column normalization (TO BUILD)
+│   ├── players.py        # Player ID canonicalization (TO BUILD)
+│   ├── db.py             # SQLite schema and population (TO BUILD)
+│   ├── bradley_terry.py  # Time-weighted BT model (TO BUILD)
+│   └── eval.py           # Temporal CV evaluation (TO BUILD)
+├── outputs/              # Plots, results
+├── PROJECT_HANDOFF.md    # This file
+└── README.md             # Final writeup
 ```
 
-Installed packages: `pandas openpyxl numpy scipy statsmodels scikit-learn matplotlib seaborn plotly jupyter`.
+Installed: `pandas openpyxl numpy scipy statsmodels scikit-learn matplotlib seaborn plotly jupyter`.
 
 ---
 
-## Next Steps (In Order)
+## Build Plan (In Order)
 
-### Phase 1 — Promote Notebook Code Into Modules
+### Phase 1 — Foundation (target: ~5 days)
 
-The exploration notebook has working code that needs to be productionized. Create:
+Extract working code from the exploration notebook into proper modules. **Do not skip ahead to modeling until this is solid.**
 
-**`src/ingest.py`** — File reading and column normalization:
-- The `COLUMN_ALIASES` dictionary (currently ~140 entries, will grow)
+**`src/ingest.py`:**
+- The `COLUMN_ALIASES` dictionary
 - `detect_header_row(path, sheet_name, markers)`
 - `normalize_columns(df, alias_map)`
-- `read_legacy_tab(tab_name)` — with the `角色`/`角色.4` pre-rename quirk
+- `read_legacy_tab(tab_name)` — with `角色`/`角色.4` pre-rename
 - `read_modern_sheet(filename, sheet_name)`
 - `_drop_template_rows(df)` with multi-column anchor fallback
-- File registry constants (`LEGACY_FILE`, `IVL_FILES`, `IJL_FILES`, `COA_FILES`)
+- File registry constants
 
-**`src/players.py`** — Player ID normalization (NEW, not yet implemented):
+**`src/players.py` — NEW, critical foundational task:**
 - Parse the `曾用id` tab from `data/raw/2020-2023.xlsx`
-- Build `ALIAS_MAP: Dict[str, str]` mapping old IDs to canonical IDs
-- Support manual overrides for post-2023 ID changes
-- `normalize_player_id(raw_id)` function applied at ingestion time
-- Apply to all 5 player ID columns (`hunter_player`, `survivor1_player`, ..., `survivor4_player`)
-- Handle case sensitivity (lowercase everything)
+- Inspect the table's structure first (likely wide format: canonical ID in col 0, aliases in subsequent cols, but verify)
+- Build `ALIAS_MAP: Dict[str, str]` mapping every historical ID to its canonical form
+- Add a manual `MANUAL_ALIASES` dict for post-2023 ID changes the legacy table doesn't cover (start with `{'ppicha': 'pipicha'}` based on the fuzzy match findings)
+- `normalize_player_id(raw_id)` function that lowercases, strips, and looks up
+- Apply this to all 5 ID columns at ingestion time, before any downstream processing
 
-**`src/db.py`** — SQLite database operations (NEW):
+**`src/db.py`:**
+- Schema as documented above
+- `build_database()` function that:
+  1. Reads every legacy raw tab and every modern `原始数据` sheet
+  2. For each row, extracts the 6 modeling fields + 2 metadata fields
+  3. Normalizes player IDs using `players.normalize_player_id`
+  4. Computes `hunter_wins` from `winner_side`: `1` if `'屠'`, `0` if `'人'`, drop draws (`'平'`)
+  5. Parses dates: for modern files use `月` and `日` columns plus year from filename; for legacy use the `date` column directly
+  6. Constructs tournament identifier from filename / source tab name
+  7. Inserts into SQLite
+- `build_players_table()` — separate function that scans the matches table and produces the players registry
 
-Schema design:
-```sql
-CREATE TABLE games (
-    game_id INTEGER PRIMARY KEY,
-    tournament TEXT,         -- e.g. 'IVL', 'IJL', 'COA8'
-    season TEXT,             -- e.g. '2025夏季常规'
-    date TEXT,
-    half TEXT,               -- '上' or '下', NULL for 2020
-    home_team TEXT,
-    away_team TEXT,
-    hunter_team TEXT,
-    survivor_team TEXT,
-    hunter_player TEXT,      -- canonical ID
-    hunter_character TEXT,
-    map_name TEXT,
-    winner_side TEXT,        -- '屠' or '人'
-    gens_remaining INTEGER,
-    source_file TEXT         -- for traceability
-);
+Validate by querying: total match count, count per tournament, count of unique players, date range, hunter win rate. Expected hunter win rate is in the 45-55% range based on earlier exploration.
 
-CREATE TABLE player_stats (
-    game_id INTEGER REFERENCES games(game_id),
-    slot INTEGER,            -- 1-4 for survivors, 0 for hunter
-    player_id TEXT,          -- canonical
-    role TEXT,               -- 'hunter' or 'survivor'
-    character TEXT,
-    repairs REAL,
-    rescues INTEGER,
-    heals REAL,
-    boards REAL,
-    harassment REAL,
-    result TEXT,             -- escaped/eliminated/etc
-    PRIMARY KEY (game_id, slot)
-);
+### Phase 2 — Baseline Bradley-Terry (target: ~4 days)
 
-CREATE TABLE players (
-    canonical_id TEXT PRIMARY KEY,
-    known_roles TEXT,        -- 'hunter' | 'survivor' | 'both'
-    first_seen TEXT,
-    last_seen TEXT
-);
+**`src/bradley_terry.py`:**
+
+```python
+def fit_bradley_terry(
+    matches: pd.DataFrame,         # columns: date, hunter_player, 
+                                   #          survivor[1-4]_player, hunter_wins
+    half_life_days: float = None,  # None = no time weighting
+    reference_date: datetime = None,
+    l2_lambda: float = 1.0,
+    survivor_weight_w: float = 1.0  # weight on avg survivor skill on hunter side
+) -> Dict[Tuple[str, str], float]:  # (player_id, role) -> beta
+    """
+    Fit time-weighted Bradley-Terry MLE via L-BFGS-B.
+    Returns mapping from (player_id, role) tuple to log-skill parameter.
+    """
 ```
 
-Build the panel dataset by:
-1. Reading every legacy tab and modern raw sheet
-2. Pivoting legacy survivor columns from wide-per-slot format to long
-3. Joining modern raw sheets with their corresponding 赛后数据 sheets on (date, half, hunter_team, survivor_team)
-4. Writing to SQLite with proper indexes
+The match strength function is asymmetric due to the 1v4 structure:
 
-### Phase 2 — Feature Engineering
+$$S_{hunter\_side} = \beta^H_{hunter\_player} + w \cdot \overline{\beta^S_{survivor\_team}}$$
+$$P(\text{hunter wins}) = \sigma(S_{hunter\_side} - \overline{\beta^S_{survivor\_team}})$$
 
-**`src/features.py`** — Compute analysis features from the database:
-- Encode categorical variables (maps as dummies, characters as dummies)
-- Build era buckets (year-level for character/map interactions)
-- Compute "main pick" indicator (fraction of a player's games on this character)
-- Aggregate player stats for the efficiency metric
+where $\overline{\beta^S}$ averages over the four survivor players' ratings. For v1, fix `w=1`. Estimating `w` jointly is a defensible extension if time permits.
 
-### Phase 3 — Models
+Identifiability constraint: fix one player's $\beta$ to 0 (or work in zero-mean parameterization). Standard trick.
 
-**`src/models/bradley_terry.py`** — Player skill ratings:
-- Implement from scratch using `scipy.optimize.minimize` with L-BFGS-B
-- L2 regularization for sparse players
-- Player parameters indexed by `(player_id, role)` tuple
-- Asymmetric match strength function: $S_{hunter\_side} = \beta^H_{hunter} + \frac{w}{4}\sum \beta^S_{survivor_k}$, with $w$ estimated jointly
+Sanity check: fit without time weighting, print top 10 hunter ratings and top 10 survivor ratings. They should be recognizable strong players from the user's domain knowledge.
 
-**`src/models/mixed_effects.py`** — The variance decomposition model:
-- Use `statsmodels.MixedLM` (linear mixed model — note GLMM limitation in README, since outcomes are binary)
-- Random effects: hunter player, four survivor players
-- Fixed effects: map, character, era, character × era interactions
-- Extract variance components after fit
+### Phase 3 — Half-Life Sweep (target: ~5 days)
 
-**`src/models/efficiency.py`** — Hunter efficiency metric:
-- Population baseline by (character, map)
-- Per-player z-scored residuals
-- Aggregate per player with minimum-games threshold (probably 15-20)
-- Restricted to 2024秋 onward
+**`src/eval.py`:**
 
-**`src/eval.py`** — Evaluation:
-- Temporal cross-validation using `TimeSeriesSplit`
-- Log-loss (primary), accuracy, AUC-ROC
-- Calibration curves
-- Separate metrics for sparse vs well-represented players
+```python
+def sweep_half_lives(
+    matches: pd.DataFrame,
+    half_lives_days: List[float],
+    n_splits: int = 5,
+    l2_lambda: float = 1.0
+) -> pd.DataFrame:
+    """
+    For each candidate half-life, run temporal CV.
+    Returns dataframe with columns: half_life, fold, train_size, 
+                                    test_size, log_loss, accuracy, auc
+    """
+```
 
-### Phase 4 — Outputs and Writeup
+Critical methodology points:
+- Use `sklearn.model_selection.TimeSeriesSplit` — NEVER random k-fold on time-ordered data
+- Sort matches by date before splitting
+- For each fold: fit BT on training rows, predict on validation rows, compute log-loss
+- Cold-start handling: validation matches where any player has zero training appearances should either be dropped from the metric or get a fallback prediction (uniform priors). Document this choice.
 
-Generate:
-- Player skill rating leaderboards (top hunters, top survivors)
-- Character meta evolution timelines
-- Variance decomposition bar chart (% explained by each factor)
-- Calibration plots
-- README writeup with quant framing for interview talking points
+Candidate half-lives: log-spaced from 30 days to 1825 days (5 years), roughly 15-20 points. Tighter sampling near the expected optimum (probably somewhere in the 6-month to 2-year range, but don't assume — let the data speak).
 
----
+Plot result with matplotlib: x-axis log half-life, y-axis mean log-loss, error bars = standard error across folds. Mark the minimum.
 
-## Important Things To Avoid
+### Phase 4 — Stretch Analyses (target: ~3 days)
 
-1. **Don't try to use random train-test split.** Temporal CV only.
-2. **Don't drop the 2020 data** when adding the survivor_team filter — 2020 lacks `survivor_team`. The `_drop_template_rows` function specifically uses `hunter_team` as primary anchor for this reason.
-3. **Don't try to fit GLMM with statsmodels** — its mixed model is linear only. Note the linearization as a limitation in the README. If time permits, can use `pymer4` (R wrapper) for proper logistic mixed models.
-4. **Don't try to fit player-by-character interactions** — too many sparse parameters. Use the "main pick" indicator instead.
-5. **Don't include IVT or Japan qualifier files** — different competitive population, would introduce noise.
-6. **Don't forget the `_qc_` columns** — drop any column prefixed `_qc_` or `_` before modeling.
-7. **Don't trust `header=0` or `header=1` universally** — always use `detect_header_row`. Different files use different rows.
+Only if Phases 1-3 are clean and complete.
 
----
+**Role asymmetry.** Fit BT for hunter ratings and survivor ratings separately. Sweep half-life independently for each. Compare the two optimal half-lives. Expected finding direction (hypothesis, not assumption): hunter half-life is shorter because hunter skill is more character-tied and characters get patched.
 
-## Timeline Constraint
+**Tier comparison.** Three separate sweeps: IVL only, IJL only, COA only. Compare optimal half-lives. Smallest sample size will be COA — confidence intervals will be wide; report them honestly.
 
-User starts PROMYS counselor program on **June 21** which is intensive and immersive. Effective working time before PROMYS: ~3 weeks (current date June 2). Goal: have a working pipeline + baseline Bradley-Terry model + preliminary variance decomposition by June 21. Refinement happens during PROMYS in limited free time. Full project completion target: end of July.
+**Temporal stability.** Two sweeps: matches from 2020-2022 only, matches from 2023-2025 only. Has the optimum shifted? A shorter optimum in recent years would suggest the meta is moving faster.
 
-Application deadline for Jane Street Insight is June 14 — the user is applying without this project on the resume (existing resume is already strong enough). This project is for the **summer 2027 main recruiting cycle** starting July 1.
+### Phase 5 — Writeup (target: ~3 days)
+
+**`README.md`** with:
+
+- One-sentence headline finding: *"Skill information in competitive Identity V has an optimal half-life of X months for predicting future match outcomes."*
+- Brief background: what the game is, what the data is, why the question matters
+- **Explicit quant framing**: alpha decay analogy, temporal cross-validation as backtest methodology, shrinkage via L2 regularization as analogous to portfolio covariance shrinkage
+- Methodology section explaining time-weighted MLE, why log-loss, why temporal CV
+- The headline plot (half-life sweep curve)
+- Stretch analyses if done, each with their own plot
+- Limitations section: linearized binary outcome treatment, draws dropped, regional/tier coverage gaps, cold-start handling
+- Reproducibility: how to run the pipeline end to end
 
 ---
 
-## Suggested First Action For Claude Code
+## Interview Talking Points To Embed In The Project
 
-Start by examining the existing exploration notebook (`notebooks/01_explore.ipynb`) to ground yourself in what's been built, then create `src/ingest.py` by extracting and cleaning up the relevant functions and constants. Confirm it works by loading a sample file end-to-end and printing a clean dataframe.
+These are sentences the user should be able to say naturally in interviews. Build the project so these statements are accurate descriptions of what was done:
 
-After that, tackle player alias parsing from the `曾用id` tab — this is the biggest unfinished foundational task before the database can be built.
+- *"I implemented time-weighted maximum likelihood Bradley-Terry from scratch, using L-BFGS-B optimization with L2 regularization for sparse players."*
+- *"I used log-loss as the evaluation metric because it's a strictly proper scoring rule and matches the likelihood being optimized."*
+- *"I used `TimeSeriesSplit` temporal cross-validation to avoid lookahead bias — random k-fold would have leaked future matches into training, which is the standard pitfall in backtesting trading strategies."*
+- *"The decay rate parameter is structurally analogous to alpha decay in quantitative trading — I'm measuring how fast historical information becomes stale."*
+- *"L2 regularization on player ratings is equivalent to a Gaussian prior, providing shrinkage for sparse players in the same way one would shrink a sample covariance matrix in portfolio construction."*
+
+---
+
+## Things To Avoid
+
+1. **Do not use random train-test split.** Temporal CV only. This is the single most important methodological point.
+2. **Do not try to fit GLMM or mixed effects models.** Cut from scope. Linear/logistic Bradley-Terry only.
+3. **Do not include 2025IVS or Japan qualifier files** — different population.
+4. **Do not extract more columns than the schema specifies.** Resist the temptation to "carry along" map names or characters "in case." Six columns plus metadata.
+5. **Do not extend the exploration notebook.** Use a fresh `02_modeling.ipynb` for development and put production code in `src/`.
+6. **Do not skip the `曾用id` parsing.** Player ID continuity is foundational. If IDs aren't normalized, the time decay analysis is contaminated by aliasing.
+7. **Do not pre-emptively optimize for stretch goals.** Get Phases 1-3 done end to end first, then revisit.
+8. **Do not trust `header=0` or `header=1` universally.** Always use `detect_header_row`.
+
+---
+
+## Suggested First Action
+
+1. Read `notebooks/01_explore.ipynb` end to end to understand what's been built and what conventions are established
+2. Extract code into `src/ingest.py` and verify it works by loading one legacy tab and one modern sheet
+3. Then tackle `src/players.py` — start by inspecting the `曾用id` tab structure with a simple `pd.read_excel(...).head(20)` to see its layout, then build the alias map
+
+After those two modules are working, building `src/db.py` is straightforward — it's mostly orchestration code that calls the ingestion and player normalization functions. Once the database exists, modeling can begin.
