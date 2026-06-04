@@ -165,7 +165,7 @@ def fit_ratings(
     half_life_days: float | None = None,
     reference_date: str | None = None,
     l2: float = 1.0,
-    l2_diff: float = 10.0,
+    l2_diff: float = 3.0,        # RMSE-optimal in 5-fold temporal CV
     theta: float = 0.9,
     min_games: float = 8,
 ) -> tuple[np.ndarray, dict, list]:

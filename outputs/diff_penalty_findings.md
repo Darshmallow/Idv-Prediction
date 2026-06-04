@@ -65,3 +65,24 @@ closed-form solve, and is insensitive to its hyperparameter.
 `l2_diff` argument (default off to keep the headline reproducible; on for
 the trustworthy individual-rating leaderboard). λ_d ≈ 10 and θ ≈ 0.9 are
 reasonable defaults.
+
+## Finer sweep — chosen value: λ_d = 3
+
+A subsequent finer sweep over λ_d ∈ [0, 10] showed the RMSE optimum sits at
+λ_d ≈ 3-4, with the curve flat through that band (all within ±SE of each
+other):
+
+| λ_d | RMSE      | Δ vs baseline | clique spread (koting/persica/huiyi/guoker) |
+|----:|----------:|--------------:|--------------------------------------------:|
+|   0 | 1.10170   | (baseline)    | 1.32 |
+|   1 | 1.09920   | −0.00250      | 0.82 |
+|   2 | 1.09902   | −0.00268      | 0.59 |
+| **3** | **1.09900** | **−0.00271** | **0.47** |
+|   4 | 1.09900   | −0.00270      | 0.39 |
+|   5 | 1.09902   | −0.00268      | 0.34 |
+|  10 | 1.09913   | −0.00257      | 0.20 |
+
+**λ_d = 3** is chosen as the default: RMSE-optimal, retains some within-clique
+spread (so genuinely-good players in collinear groups aren't fully collapsed),
+and matches the qualitative reading that persica's low solo-2024 outcomes were
+partly attributable to her then-teammates rather than to her individually.
