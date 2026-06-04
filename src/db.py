@@ -151,21 +151,62 @@ def tournament_id(source: str, stage: str | None = None) -> str:
 # ---------------------------------------------------------------------------
 
 def _parse_legacy_dates(date_series: pd.Series, year: int | None) -> list[str | None]:
-    """Parse legacy date cells ('6.25', '6*9', '4/16') → ISO 'YYYY-MM-DD'."""
+    """
+    Parse legacy date cells into ISO 'YYYY-MM-DD' strings.
+
+    Handles three formats found in the source files:
+      Separator  : '6.25', '6*9', '4/16'  → month.day
+      4-digit int: 1104, 1227             → MMDD (November 4, December 27)
+      3-digit int: 108, 109               → MDD  (January 8, January 9)
+                                            Note: 3-digit months are 1-9 so
+                                            day is the last 2 digits.
+
+    For the integer formats the month/year may cross a calendar year boundary
+    (IVL fall season extends to Jan-Feb of the following year).  Months 1-5
+    in a tab named for year Y are assigned to year Y+1.
+    """
     out: list[str | None] = []
     for val in date_series:
         parsed = None
         if not pd.isna(val) and year:
             s = str(val).strip()
+
+            # --- Try separator-based parsing first ---
+            # This handles '6.25', '6*9', '4/16'.
+            # Note: integers like 108 become '108.0' after float-string
+            # conversion and do contain a '.', but yield m=108 which fails
+            # the validity check and falls through to the integer path below.
             for sep in (".", "*", "/"):
                 if sep in s:
                     try:
                         m_str, d_str = s.split(sep, 1)
                         m, d = int(float(m_str)), int(float(d_str))
-                        parsed = f"{year}-{m:02d}-{d:02d}"
+                        if 1 <= m <= 12 and 1 <= d <= 31:
+                            parsed = f"{year}-{m:02d}-{d:02d}"
                     except (ValueError, TypeError):
-                        parsed = None
-                    break
+                        pass
+                    break   # only try one separator; fall through if invalid
+
+            # --- Integer MMDD / MDD fallback ---
+            # Handles cells stored as bare integers: 1104 → Nov 4, 108 → Jan 8.
+            # Triggered when separator parsing found no valid date.
+            if parsed is None:
+                try:
+                    n = int(float(s))
+                    if 1000 <= n <= 1231:           # MMDD: e.g. 1104 → Nov 4
+                        m, d = n // 100, n % 100
+                    elif 100 <= n <= 931:            # MDD:  e.g. 108 → Jan 8
+                        m, d = n // 100, n % 100
+                    else:
+                        m, d = 0, 0
+                    if 1 <= m <= 12 and 1 <= d <= 31:
+                        # Months Jan–May likely belong to the following year
+                        # (IVL fall season sometimes extends into early spring)
+                        y = year + 1 if m <= 5 else year
+                        parsed = f"{y}-{m:02d}-{d:02d}"
+                except (ValueError, TypeError):
+                    pass
+
         out.append(parsed)
     return out
 

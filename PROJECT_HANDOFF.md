@@ -14,7 +14,7 @@ A single plot: out-of-sample predictive log-loss vs decay half-life across a swe
 
 ### Author Context
 
-User is a Brown sophomore (Math-CS, 4.0 GPA), applying to Jane Street Insight (deadline June 14, applying without this project) and main 2027 quant recruiting opening July 1. PROMYS counselor starts June 21 — limited time during. **Effective focused work time before PROMYS: roughly 3 weeks (today is early June).** Project should be presentable on GitHub with clean code and a strong README by end of June.
+User is a Brown sophomore (Math-CS, 4.0 GPA), applying to main 2027 quant recruiting opening July 1. PROMYS counselor starts June 21 — limited time during. **Effective focused work time before PROMYS: roughly 3 weeks (today is early June).** Project should be presentable on GitHub with clean code and a strong README by end of June.
 
 ---
 

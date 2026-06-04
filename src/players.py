@@ -67,12 +67,6 @@ MANUAL_OVERRIDES: dict[str, str] = {
     # but sometimes a player switched permanently to a new ID in 2024+ that
     # has fewer legacy games. Add those corrections here.
     "taoxing": "tx",    # 逃行: 36 legacy games as taoxing, but tx is used in 2024+
-
-    # --- Post-2023 ID changes ---
-    # (none recorded yet)
-
-    # --- Suspected typo-duplicates (fuzzy match > 0.85) ---
-    # Uncomment once confirmed to be the same person.
     "ppicha": "pipicha",   # pipicha ~ ppicha — likely same player
     "gua":    "guag",      # gua ~ guag
 }
