@@ -140,20 +140,25 @@ def sweep_regime(
     matches = filter_complete(matches).sort_values("date").reset_index(drop=True)
     splits  = get_splits(matches, split_strategy, n_splits)
 
+    # Both linear and ordinal share the same per-fold weight construction;
+    # only the fit/predict step differs.
+    from bradley_terry import build_design_matrix, build_player_index, fit, predict
+    from eval import _test_period_label
+
     if model == "ordinal":
         from ordinal import fit_ordinal, predict_expected_margin
-        from bradley_terry import build_design_matrix
-        def _fit(train, test, weights, refdate):
-            res  = fit_ordinal(train, half_life_days=None, l2_lambda=l2_lambda)
-            # need to pass custom weights; ordinal.fit_ordinal accepts only τ.
-            # Inject by re-fitting with a custom path:
-            return None
-        raise NotImplementedError("Use model='linear' for the regime sweep; "
-                                  "ordinal would require an internal refactor "
-                                  "to accept pre-computed weights.")
-
-    # Linear path — closed-form ridge, supports arbitrary weight vectors.
-    from bradley_terry import build_design_matrix, build_player_index, fit, predict
+        def _fit_predict(train, test, idx, weights, l2):
+            res   = fit_ordinal(train, l2_lambda=l2, weights=weights)
+            y_hat = predict_expected_margin(test, res)
+            return y_hat
+    elif model == "linear":
+        def _fit_predict(train, test, idx, weights, l2):
+            X_tr, y_tr = build_design_matrix(train, idx)
+            beta       = fit(X_tr, y_tr, weights, l2)
+            X_te, _    = build_design_matrix(test, idx)
+            return predict(X_te, beta)
+    else:
+        raise ValueError(f"model must be 'linear' or 'ordinal', got {model!r}")
 
     all_rows = []
     t0 = time.time()
@@ -172,19 +177,15 @@ def sweep_regime(
                 train, test = matches.iloc[tr_idx], matches.iloc[te_idx]
                 ref         = train["date"].max()
                 idx         = build_player_index(train)
-                X_tr, y_tr  = build_design_matrix(train, idx)
                 w           = compute_weights_regime(
                     train["date"], ref,
                     tau_post=float(tau_post), tau_pre=float(tau_pre),
                     shift_date=shift_date, alpha=float(alpha),
                 )
-                beta        = fit(X_tr, y_tr, w, l2_lambda)
-                X_te, y_te  = build_design_matrix(test, idx)
-                y_hat       = predict(X_te, beta)
+                y_te        = (test["n_escaped"] - 2).to_numpy(dtype=np.float64)
+                y_hat       = _fit_predict(train, test, idx, w, l2_lambda)
                 rmse        = float(np.sqrt(np.mean((y_te - y_hat) ** 2)))
                 null        = float(np.sqrt(np.mean(y_te ** 2)))
-                # human-readable test period
-                from eval import _test_period_label
                 period      = _test_period_label(matches, te_idx, split_strategy)
                 all_rows.append({
                     "tau_post":   float(tau_post),

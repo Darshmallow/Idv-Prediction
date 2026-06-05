@@ -229,9 +229,20 @@ def fit_ordinal(
     init_theta: np.ndarray | None = None,
     maxiter: int = 1000,
     verbose: bool = False,
+    weights: np.ndarray | None = None,
 ) -> dict:
     """
     Fit the proportional-odds margin model on a single dataset.
+
+    Parameters
+    ----------
+    weights : Optional pre-computed per-match weight vector.  If given,
+              `half_life_days` and `reference_date` are ignored.  Must be
+              the same length as `filter_complete(matches)`.  Useful for
+              experimenting with non-standard weight schemes (e.g.
+              piecewise / regime-shift decay — see src/regime_decay.py).
+
+    All other parameters and return value unchanged.
 
     Returns
     -------
@@ -250,7 +261,15 @@ def fit_ordinal(
     player_index = build_player_index(m)
     X, _         = build_design_matrix(m, player_index)
     n_obs        = m["n_escaped"].to_numpy(dtype=int)
-    w            = compute_weights(m["date"], reference_date, half_life_days)
+    if weights is None:
+        w = compute_weights(m["date"], reference_date, half_life_days)
+    else:
+        w = np.asarray(weights, dtype=np.float64)
+        if len(w) != len(m):
+            raise ValueError(
+                f"weights length {len(w)} doesn't match "
+                f"filter_complete(matches) length {len(m)}"
+            )
     P            = X.shape[1]
 
     # Initialisation
