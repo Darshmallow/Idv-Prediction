@@ -20,22 +20,40 @@ RMSE on the margin  y = n_escaped − 2 ∈ {−2,−1,0,+1,+2}.
 Baseline: predict ŷ = 0 always (everyone is average) → RMSE ≈ 1.15.
 A useful model must beat that.
 
+Two split strategies are supported:
+
+  "time_series"  — sklearn TimeSeriesSplit with N+1 equal chunks.
+                   N splits; each test fold = N/(n_splits+1) consecutive
+                   matches by date.  Default for backward compatibility.
+
+  "seasons"      — one fold per competitive year, derived from tournament
+                   names.  Each test fold = all matches of one season
+                   (IVL summer + fall + IJL summer + fall + COA).  Train
+                   = all matches from earlier seasons (expanding window).
+                   Number of splits = (n_seasons − 1).
+
 Public API
 ----------
-    temporal_cv(matches, half_life_days, n_splits, l2_lambda)
+    season_splits(matches)
+        → list of (train_idx, test_idx) tuples for the season strategy
+
+    get_splits(matches, strategy, n_splits)
+        → unified dispatcher
+
+    temporal_cv(matches, half_life_days, n_splits, l2_lambda, split_strategy)
         → per-fold results DataFrame
 
-    null_model_rmse(matches, n_splits)
+    null_model_rmse(matches, n_splits, split_strategy)
         → float — RMSE of the ŷ=0 baseline, same CV setup
 
-    sweep_half_lives(matches, half_lives, n_splits, l2_lambda, verbose)
+    sweep_half_lives(matches, half_lives, n_splits, l2_lambda, verbose, split_strategy)
         → long-form results DataFrame (one row per fold × half-life)
 
     summarise(results)
         → aggregated DataFrame (one row per half-life)
 
     plot_sweep(results, save_path)
-        → saves + shows the sweep curve
+        → saves the sweep curve
 """
 
 from __future__ import annotations
@@ -107,6 +125,102 @@ def _cold_start_mask(
 
 
 # ---------------------------------------------------------------------------
+# Split strategies
+# ---------------------------------------------------------------------------
+
+# Maps COA edition → competitive year it wraps up.
+# COA spring N world finals belong with season (N−1).
+_COA_TO_SEASON = {4: 2020, 5: 2021, 6: 2022, 7: 2023, 8: 2024, 9: 2025}
+
+
+def _season_year(tournament: str) -> int | None:
+    """
+    Map a tournament-id string to its competitive-year fold.
+
+    IVL_2024_summer_regular     → 2024
+    IJL_2025_fall_playoffs      → 2025
+    COA8 (April-May 2025)       → 2024  (wraps up the 2024 season)
+    COA4 (April-May 2021)       → 2020
+    """
+    if tournament.startswith("COA"):
+        try:
+            return _COA_TO_SEASON[int(tournament[3:])]
+        except (KeyError, ValueError):
+            return None
+    parts = tournament.split("_")
+    if len(parts) >= 2 and parts[1].isdigit():
+        return int(parts[1])
+    return None
+
+
+def season_splits(matches: pd.DataFrame) -> list[tuple[np.ndarray, np.ndarray]]:
+    """
+    Season-aligned expanding-window splits.
+
+    Each split's test set = all matches from one competitive-year fold;
+    training set = all earlier folds.
+
+    Number of splits = (number of seasons in the data) − 1.  The earliest
+    season is never used as a test fold (only as training data).
+
+    Parameters
+    ----------
+    matches : DataFrame with a `tournament` column.
+              Should be the row-filtered, date-sorted version that
+              `temporal_cv` operates on (so positional indices match).
+
+    Returns
+    -------
+    List of (train_idx, test_idx) tuples — each idx is a 1-D numpy array
+    of integer positions into `matches`.
+    """
+    seasons = matches["tournament"].map(_season_year)
+    unique_seasons = sorted(s for s in seasons.dropna().unique())
+    splits: list[tuple[np.ndarray, np.ndarray]] = []
+    for k in range(len(unique_seasons) - 1):
+        train_mask = seasons <= unique_seasons[k]
+        test_mask  = seasons == unique_seasons[k + 1]
+        splits.append((
+            np.where(train_mask)[0],
+            np.where(test_mask)[0],
+        ))
+    return splits
+
+
+def get_splits(
+    matches: pd.DataFrame,
+    strategy: str = "time_series",
+    n_splits: int = 5,
+) -> list[tuple[np.ndarray, np.ndarray]]:
+    """
+    Unified dispatcher.  Returns a list of (train_idx, test_idx) tuples.
+
+    strategy:
+        "time_series" - sklearn TimeSeriesSplit (expanding window)
+        "seasons"     - one test fold per competitive season
+
+    For "seasons", n_splits is ignored (determined by data).
+    """
+    if strategy == "time_series":
+        return list(TimeSeriesSplit(n_splits=n_splits).split(matches))
+    if strategy == "seasons":
+        return season_splits(matches)
+    raise ValueError(f"Unknown split_strategy {strategy!r}; "
+                     f"use 'time_series' or 'seasons'.")
+
+
+def _test_period_label(matches: pd.DataFrame, test_idx: np.ndarray,
+                       strategy: str) -> str:
+    """Human-readable label for a test fold."""
+    if strategy == "seasons":
+        seasons = matches.iloc[test_idx]["tournament"].map(_season_year).dropna()
+        if len(seasons):
+            return str(int(seasons.iloc[0]))
+    sub = matches.iloc[test_idx]
+    return f"{sub['date'].min()}→{sub['date'].max()}"
+
+
+# ---------------------------------------------------------------------------
 # Single CV run
 # ---------------------------------------------------------------------------
 
@@ -115,9 +229,10 @@ def temporal_cv(
     half_life_days: float | None,
     n_splits: int = 5,
     l2_lambda: float = 1.0,
+    split_strategy: str = "time_series",
 ) -> pd.DataFrame:
     """
-    Run n_splits-fold temporal cross-validation for one half-life value.
+    Run temporal cross-validation for one half-life value.
 
     Matches are sorted by date; each fold's test set is strictly after its
     training set.  The reference date for decay weights is the last date
@@ -128,20 +243,21 @@ def temporal_cv(
     ----------
     matches        : Full matches DataFrame (will be filtered + sorted).
     half_life_days : τ in days.  None = uniform weights (no decay).
-    n_splits       : Number of temporal folds.
+    n_splits       : Number of temporal folds (ignored for "seasons" strategy).
     l2_lambda      : Ridge penalty.
+    split_strategy : "time_series" (default) or "seasons" — see module docstring.
 
     Returns
     -------
     DataFrame with columns:
-        half_life_days, fold, train_size, test_size,
+        half_life_days, fold, test_period, train_size, test_size,
         rmse, null_rmse, n_cold_start
     """
     matches = filter_complete(matches).sort_values("date").reset_index(drop=True)
-    tscv    = TimeSeriesSplit(n_splits=n_splits)
+    splits  = get_splits(matches, split_strategy, n_splits)
     rows    = []
 
-    for fold, (train_idx, test_idx) in enumerate(tscv.split(matches), start=1):
+    for fold, (train_idx, test_idx) in enumerate(splits, start=1):
         train = matches.iloc[train_idx]
         test  = matches.iloc[test_idx]
 
@@ -165,6 +281,7 @@ def temporal_cv(
         rows.append({
             "half_life_days": half_life_days,
             "fold":           fold,
+            "test_period":    _test_period_label(matches, test_idx, split_strategy),
             "train_size":     len(train),
             "test_size":      len(test),
             "rmse":           rmse,
@@ -182,15 +299,16 @@ def temporal_cv(
 def null_model_rmse(
     matches: pd.DataFrame,
     n_splits: int = 5,
+    split_strategy: str = "time_series",
 ) -> float:
     """
     RMSE of the ŷ = 0 baseline (everyone is average) using the same CV folds.
     Returns the mean across folds.
     """
     matches = filter_complete(matches).sort_values("date").reset_index(drop=True)
-    tscv    = TimeSeriesSplit(n_splits=n_splits)
+    splits  = get_splits(matches, split_strategy, n_splits)
     rmses   = []
-    for _, test_idx in tscv.split(matches):
+    for _, test_idx in splits:
         y = (matches.iloc[test_idx]["n_escaped"] - 2).to_numpy(dtype=float)
         rmses.append(float(np.sqrt(np.mean(y ** 2))))
     return float(np.mean(rmses))
@@ -206,6 +324,7 @@ def sweep_half_lives(
     n_splits: int = 5,
     l2_lambda: float = 1.0,
     verbose: bool = True,
+    split_strategy: str = "time_series",
 ) -> pd.DataFrame:
     """
     Run temporal CV for each candidate half-life.
@@ -240,7 +359,7 @@ def sweep_half_lives(
             print(f"  [{i:2d}/{len(half_lives)}]  {label} …", end="", flush=True)
 
         fold_t0 = time.time()
-        cv      = temporal_cv(matches, tau_val, n_splits, l2_lambda)
+        cv      = temporal_cv(matches, tau_val, n_splits, l2_lambda, split_strategy)
         elapsed = time.time() - fold_t0
 
         # Store the original tau value (possibly inf) for plotting
