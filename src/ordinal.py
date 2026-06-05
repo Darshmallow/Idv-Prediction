@@ -175,6 +175,7 @@ def _objective_and_grad(
     w: np.ndarray,
     P: int,
     l2_lambda: float,
+    prior_mean: np.ndarray | None = None,
 ) -> tuple[float, np.ndarray]:
     """
     Compute (NLL + ridge) and its gradient.
@@ -182,6 +183,8 @@ def _objective_and_grad(
     params layout
     -------------
     [β (P,),  a, b_1, b_2, b_3]    →  shape (P + 4,)
+
+    The ridge term is  0.5 * λ * ‖β − μ‖²  where μ defaults to zeros.
     """
     beta = params[:P]
     ab   = params[P:]
@@ -190,10 +193,15 @@ def _objective_and_grad(
 
     log_p, d_eta, d_th = _logp_and_grad(eta, th, n_obs)
 
-    nll = -np.sum(w * log_p) + 0.5 * l2_lambda * float(beta @ beta)
+    if prior_mean is None:
+        beta_centred = beta
+    else:
+        beta_centred = beta - prior_mean
 
-    # ∂nll / ∂β = −Xᵀ(w · d_eta) + λβ
-    g_beta = -np.asarray(X.T @ (w * d_eta)).ravel() + l2_lambda * beta
+    nll = -np.sum(w * log_p) + 0.5 * l2_lambda * float(beta_centred @ beta_centred)
+
+    # ∂nll / ∂β = −Xᵀ(w · d_eta) + λ(β − μ)
+    g_beta = -np.asarray(X.T @ (w * d_eta)).ravel() + l2_lambda * beta_centred
 
     # ∂nll / ∂θ_k = −Σ_i w_i · d_th[i, k]
     g_theta = -(w[:, None] * d_th).sum(axis=0)
@@ -230,6 +238,7 @@ def fit_ordinal(
     maxiter: int = 1000,
     verbose: bool = False,
     weights: np.ndarray | None = None,
+    prior_mean: np.ndarray | None = None,
 ) -> dict:
     """
     Fit the proportional-odds margin model on a single dataset.
@@ -241,6 +250,10 @@ def fit_ordinal(
               the same length as `filter_complete(matches)`.  Useful for
               experimenting with non-standard weight schemes (e.g.
               piecewise / regime-shift decay — see src/regime_decay.py).
+    prior_mean : Optional P-vector setting the centre of the L2 ridge for
+                 each player.  Default (None) → zeros (standard L2 prior
+                 N(0, σ²)).  Used to inject team-anchored priors for
+                 cold-start players — see src/team_prior.py.
 
     All other parameters and return value unchanged.
 
@@ -278,10 +291,15 @@ def fit_ordinal(
     ab0    = _theta_to_ab(theta0)
     x0     = np.concatenate([beta0, ab0])
 
+    if prior_mean is not None:
+        prior_mean = np.asarray(prior_mean, dtype=np.float64)
+        if len(prior_mean) != P:
+            raise ValueError(f"prior_mean length {len(prior_mean)} != P={P}")
+
     result = minimize(
         _objective_and_grad,
         x0,
-        args=(X, n_obs, w, P, l2_lambda),
+        args=(X, n_obs, w, P, l2_lambda, prior_mean),
         method="L-BFGS-B",
         jac=True,
         options=dict(maxiter=maxiter, ftol=1e-9, gtol=1e-7),
