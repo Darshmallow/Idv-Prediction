@@ -3,178 +3,260 @@ src/team_prior.py
 =================
 EXPERIMENT (branch: team-prior)
 
-Replace the standard centred-at-zero L2 prior on player ratings with a
-**team-anchored prior**:
+Initialize NEW players' ridge prior centred at the mean of their first-match
+teammates' β values, rather than at zero.  Established players keep the
+standard N(0, σ²) prior.
 
-    β_i ~ N(μ_team(i), σ²)         instead of    β_i ~ N(0, σ²)
+This is a *targeted* informed prior, NOT a universal team-anchored
+penalty — established players have enough individual data; only the
+sparse-history players benefit from the team-anchoring.
 
-where μ_team(i) is the (co-appearance-weighted) mean rating of survivor i's
-teammates.  Implemented as a graph-Laplacian-style structured penalty:
+Definition of "new"
+-------------------
+A player is "new" iff they appear in fewer than `new_player_threshold`
+matches in the training set.  Default threshold = 5.
 
-    L(β) = ½ ‖y − Xβ‖²_W + λ_player ‖β‖²  +  λ_team ‖(I − A)β‖²
+Procedure (two-pass)
+--------------------
+1. Fit the model (linear or ordinal) with the standard prior (μ=0).
+   → preliminary β estimates for all players.
+2. For each new player i:
+     a. Find their first match in training.
+     b. team_mean_i = mean of teammates' preliminary β values from that
+        match (their 3 co-survivors if i is a survivor; their 4 opposing
+        survivors if i is a hunter).
+     c. Set prior_mean[i] = team_mean_i.
+3. Refit with the per-player prior:    penalty = 0.5 λ ‖β − μ‖²
 
-A is the row-normalised survivor co-appearance adjacency matrix:
+For closed-form linear ridge this just shifts the RHS:
+    (XᵀWX + λI) β = XᵀW y  +  λ μ
 
-    A[i, j] = (# matches with survivors i and j together)
-              / (# matches involving survivor i)
-
-so (Aβ)_i is the co-appearance-weighted mean of survivor i's teammates'
-ratings, and (I − A)β is the deviation of each survivor's rating from
-that mean.  Hunters are exempt from the team-anchored term — they don't
-have teammates.
-
-Intuition for "informed prior on new players"
----------------------------------------------
-A player with N training matches has their β estimated jointly from
-their own observations and the prior.  When N is small, the prior
-dominates.  With standard L2 the prior is N(0, σ²), pulling new players
-to "average".  With team-anchoring, the prior is centred at the
-teammates' mean, so a player who only ever shows up alongside a strong
-roster is presumed strong themselves — consistent with the empirical
-observation that strong teams recruit talented players.
+For ordinal it modifies the gradient analogously (already supported via
+`ordinal.fit_ordinal`'s `prior_mean` parameter).
 
 Public API
 ----------
-    build_team_adjacency(matches, player_index)
-        → ndarray (P, P)   survivor-co-appearance row-normalised adjacency
+    identify_new_players(matches, player_index, threshold)
+        → set of (player_id, role) keys
 
-    fit_team_anchored(matches, half_life_days=None, ...,
-                       l2_player=0.1, l2_team=1.0, weights=None)
+    compute_team_mean_priors(matches, player_index, beta, new_keys)
+        → ndarray (P,) — zeros for established players, team mean for new
+
+    fit_with_new_player_prior(matches, model='linear', ...,
+                              threshold=5, weights=None)
         → (beta, player_index)
-
-When λ_team = 0 this reduces exactly to the baseline linear BT model.
 """
 
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from scipy import linalg, sparse
+from scipy import linalg
 
 from bradley_terry import (
     SURVIVOR_COLS,
     build_design_matrix,
     build_player_index,
     compute_weights,
+    fit,
     filter_complete,
 )
 
 
 # ---------------------------------------------------------------------------
-# Adjacency
+# Identifying new players
 # ---------------------------------------------------------------------------
 
-def build_team_adjacency(
+def identify_new_players(
     matches: pd.DataFrame,
     player_index: dict[tuple[str, str], int],
+    threshold: int = 5,
+) -> set[tuple[str, str]]:
+    """
+    Return the set of (player_id, role) keys for players appearing in fewer
+    than `threshold` matches in the training set.
+    """
+    counts: dict[tuple[str, str], int] = {k: 0 for k in player_index}
+    h = matches["hunter_player"].astype(str)
+    for pid in h:
+        key = (pid, "hunter")
+        if key in counts:
+            counts[key] += 1
+    for col in SURVIVOR_COLS:
+        for pid in matches[col].dropna().astype(str):
+            key = (pid, "survivor")
+            if key in counts:
+                counts[key] += 1
+    return {k for k, n in counts.items() if n < threshold}
+
+
+# ---------------------------------------------------------------------------
+# Computing team-mean priors at first appearance
+# ---------------------------------------------------------------------------
+
+def compute_team_mean_priors(
+    matches: pd.DataFrame,
+    player_index: dict[tuple[str, str], int],
+    beta: np.ndarray,
+    new_keys: set[tuple[str, str]],
 ) -> np.ndarray:
     """
-    Build the (P × P) survivor-co-appearance adjacency, row-normalised.
+    For each new player, find their first training match and compute the
+    mean β of their teammates from that match (using the preliminary β
+    passed in).  Return a P-vector of prior means (zeros for established
+    players).
 
-    Hunter rows (and the only entry on their row, A[h, h]) are left at 0.
-    A survivor's row sums to 1 (or 0 if they appear in zero training
-    matches alongside any other survivor, which can't happen if they're
-    in `player_index` at all).
+    "Teammates" of:
+        a new SURVIVOR  = the other 3 survivors in their first match
+        a new HUNTER    = the 4 opposing survivors in their first match
+
+    Teammates who are themselves "new" (and therefore have unreliable
+    preliminary β) are excluded from the mean — if all teammates are
+    new, prior stays at 0.
     """
     P = len(player_index)
-    A = np.zeros((P, P), dtype=np.float64)
+    mu = np.zeros(P, dtype=np.float64)
 
-    # Vectorised pair counting over the four survivor slots
-    surv_idx_arrays = []
-    for col in SURVIVOR_COLS:
-        col_idx = np.array([
-            player_index.get((str(p), "survivor"), -1)
-            for p in matches[col]
-        ], dtype=np.int64)
-        surv_idx_arrays.append(col_idx)
+    df = matches.sort_values("date").reset_index(drop=True)
+    surv_cols = SURVIVOR_COLS
 
-    # Accumulate co-appearance counts (symmetric)
-    for i in range(4):
-        for j in range(i + 1, 4):
-            a, b   = surv_idx_arrays[i], surv_idx_arrays[j]
-            valid  = (a >= 0) & (b >= 0)
-            np.add.at(A, (a[valid], b[valid]), 1.0)
-            np.add.at(A, (b[valid], a[valid]), 1.0)
+    # For each new player, find first appearance
+    found: dict[tuple[str, str], int] = {}
+    for i, row in df.iterrows():
+        if len(found) == len(new_keys):
+            break
+        # hunter
+        hk = (str(row["hunter_player"]), "hunter")
+        if hk in new_keys and hk not in found:
+            found[hk] = i
+        for col in surv_cols:
+            pid = row[col]
+            if pd.notna(pid):
+                sk = (str(pid), "survivor")
+                if sk in new_keys and sk not in found:
+                    found[sk] = i
 
-    # Row-normalise: each survivor's row → distribution over teammates
-    row_sums = A.sum(axis=1)
-    mask     = row_sums > 0
-    A[mask]  = A[mask] / row_sums[mask, None]
-    return A
+    # For each new player, compute teammates' β mean (excluding new teammates)
+    for key, first_idx in found.items():
+        row = df.iloc[first_idx]
+        if key[1] == "survivor":
+            # teammates = other survivors in the same row
+            teammate_keys = []
+            for col in surv_cols:
+                pid = row[col]
+                if pd.notna(pid):
+                    tk = (str(pid), "survivor")
+                    if tk != key and tk in player_index:
+                        teammate_keys.append(tk)
+        else:  # hunter
+            # teammates = the 4 survivors in the same row (opposing side
+            # but they're what defines the matchup; use them as anchor)
+            teammate_keys = []
+            for col in surv_cols:
+                pid = row[col]
+                if pd.notna(pid):
+                    tk = (str(pid), "survivor")
+                    if tk in player_index:
+                        teammate_keys.append(tk)
+
+        # Exclude teammates who are themselves new (unreliable estimates)
+        established = [tk for tk in teammate_keys if tk not in new_keys]
+        if established:
+            tm_betas = np.array([beta[player_index[tk]] for tk in established])
+            # For a HUNTER new player, the team-mean should be NEGATED:
+            # if their opposing survivors are strong (high β), the hunter
+            # facing them must be strong too (low/negative-margin contributor).
+            # But our hunter parameter convention is β^H subtracted from
+            # margin: stronger hunter -> more negative β^H means more
+            # negative margin contribution (-β^H added → margin -= β^H).
+            # Wait: design matrix has -1 for hunter column. So predicted
+            # margin contribution = -β^H_h. Strong hunter (suppresses
+            # escapes) has positive β^H. Conversely, weak hunters have
+            # negative β^H.
+            # If a new hunter consistently faces strong survivors and
+            # somehow wins, we'd infer the hunter is strong too. As a
+            # first-appearance prior, we don't have the outcome info yet,
+            # so we just say "this hunter is at the level of strong
+            # opponents" → use mean of opponents' β directly (positive
+            # mean of strong survivors → hunter prior is also positive,
+            # meaning strong).
+            mu[player_index[key]] = float(tm_betas.mean())
+        # else: leave mu at 0
+
+    return mu
 
 
 # ---------------------------------------------------------------------------
-# Fit
+# Two-pass fit
 # ---------------------------------------------------------------------------
 
-def fit_team_anchored(
+def fit_with_new_player_prior(
     matches: pd.DataFrame,
+    model: str = "linear",
     half_life_days: float | None = None,
     reference_date: str | None = None,
-    l2_player: float = 0.1,
-    l2_team: float = 1.0,
+    l2_lambda: float = 1.0,
+    threshold: int = 5,
     weights: np.ndarray | None = None,
 ) -> tuple[np.ndarray, dict[tuple[str, str], int]]:
     """
-    Closed-form weighted ridge with team-anchored penalty.
+    Fit the BT margin model with a team-anchored prior applied ONLY to
+    players appearing in fewer than `threshold` training matches.
 
-    Solves the augmented normal equations
-
-        (XᵀWX  +  λ_player·I  +  λ_team·(I−A)ᵀ(I−A)) β  =  XᵀW y
-
-    via Cholesky.  When λ_team = 0 this is exactly the baseline linear model.
+    Procedure:
+      1. Standard fit (prior μ = 0) → preliminary β
+      2. Identify new players (training-set appearances < threshold)
+      3. Compute their team-mean priors from preliminary β
+      4. Refit with the per-player prior shifted to those means
 
     Parameters
     ----------
-    matches        : DataFrame of matches (will be filter_complete'd).
-    half_life_days : Single-rate decay if `weights` is None.  Ignored if
-                     `weights` is provided.
-    reference_date : Anchor date for decay.
-    l2_player      : Standard ridge on β (small ε for identifiability).
-    l2_team        : Strength of the team-anchored shrinkage.
-    weights        : Optional pre-computed per-match weights (e.g. from
-                     `regime_decay.compute_weights_regime`).
-
-    Returns
-    -------
-    beta         : (P,) array of player ratings
-    player_index : (player_id, role) → column index
+    model           : "linear" or "ordinal"
+    half_life_days  : single-rate decay (ignored if `weights` is given)
+    weights         : optional pre-computed weight vector
+    threshold       : player is "new" if training appearances < threshold
     """
     m = filter_complete(matches)
     if reference_date is None:
         reference_date = m["date"].max()
 
     player_index = build_player_index(m)
-    X, y         = build_design_matrix(m, player_index)
     if weights is None:
         w = compute_weights(m["date"], reference_date, half_life_days)
     else:
         w = np.asarray(weights, dtype=np.float64)
-        if len(w) != len(m):
-            raise ValueError(f"weights length {len(w)} != filter_complete length {len(m)}")
-    P = X.shape[1]
+    P = len(player_index)
 
-    # XᵀW X term (dense P × P)
-    sqrt_w = np.sqrt(w)
-    Xw     = X.multiply(sqrt_w[:, np.newaxis])
-    XtWX   = (Xw.T @ Xw).toarray()
-    XtWy   = np.asarray(X.T @ (w * y)).ravel()
+    # --- Pass 1: standard fit ---
+    if model == "linear":
+        X, y = build_design_matrix(m, player_index)
+        beta0 = fit(X, y, w, l2_lambda)
+    elif model == "ordinal":
+        from ordinal import fit_ordinal
+        res0 = fit_ordinal(m, l2_lambda=l2_lambda, weights=w)
+        beta0 = res0["beta"]
+        theta0 = res0["theta"]
+    else:
+        raise ValueError(f"model must be 'linear' or 'ordinal', got {model!r}")
 
-    # Penalty matrix
-    A      = build_team_adjacency(m, player_index)
-    # Zero out hunter rows of (I − A) so hunters carry only λ_player ridge
-    L = np.eye(P) - A
-    is_hunter = np.array([
-        key[1] == "hunter"
-        for key, _ in sorted(player_index.items(), key=lambda kv: kv[1])
-    ])
-    L[is_hunter, :] = 0.0    # hunters not subject to team-anchored term
+    # --- Identify new players + compute team-mean priors ---
+    new_keys = identify_new_players(m, player_index, threshold)
+    mu = compute_team_mean_priors(m, player_index, beta0, new_keys)
 
-    Pen = l2_player * np.eye(P) + l2_team * (L.T @ L)
-
-    Amat = XtWX + Pen
-
-    # Cholesky solve (Amat is SPD as long as l2_player > 0)
-    c, low = linalg.cho_factor(Amat)
-    beta   = linalg.cho_solve((c, low), XtWy)
-    return beta, player_index
+    # --- Pass 2: refit with prior_mean = mu ---
+    if model == "linear":
+        # Standard ridge with shifted RHS.  Solve (X'WX + λI) β = X'Wy + λμ.
+        X, y   = build_design_matrix(m, player_index)
+        sqrt_w = np.sqrt(w)
+        Xw     = X.multiply(sqrt_w[:, np.newaxis])
+        A      = (Xw.T @ Xw).toarray()
+        A[np.diag_indices_from(A)] += l2_lambda
+        b      = np.asarray(X.T @ (w * y)).ravel() + l2_lambda * mu
+        c, low = linalg.cho_factor(A)
+        beta1  = linalg.cho_solve((c, low), b)
+        return beta1, player_index
+    else:
+        from ordinal import fit_ordinal
+        res1 = fit_ordinal(m, l2_lambda=l2_lambda, weights=w,
+                            init_theta=theta0, prior_mean=mu)
+        return res1["beta"], player_index, res1  # also return res for theta access
