@@ -230,6 +230,7 @@ def temporal_cv(
     n_splits: int = 5,
     l2_lambda: float = 1.0,
     split_strategy: str = "time_series",
+    test_tiers: list[str] | tuple[str, ...] | None = None,
 ) -> pd.DataFrame:
     """
     Run temporal cross-validation for one half-life value.
@@ -245,7 +246,11 @@ def temporal_cv(
     half_life_days : τ in days.  None = uniform weights (no decay).
     n_splits       : Number of temporal folds (ignored for "seasons" strategy).
     l2_lambda      : Ridge penalty.
-    split_strategy : "time_series" (default) or "seasons" — see module docstring.
+    split_strategy : "time_series" (default) or "seasons".
+    test_tiers     : Optional list of tournament_tier values to restrict the
+                     test set to (e.g. ['IVL', 'IJL']).  Training set is
+                     unchanged.  Requires the matches DataFrame to have a
+                     `tournament_tier` column.
 
     Returns
     -------
@@ -256,6 +261,19 @@ def temporal_cv(
     matches = filter_complete(matches).sort_values("date").reset_index(drop=True)
     splits  = get_splits(matches, split_strategy, n_splits)
     rows    = []
+
+    # Filter test indices by tier if requested
+    if test_tiers is not None:
+        if "tournament_tier" not in matches.columns:
+            raise ValueError(
+                "test_tiers requires a 'tournament_tier' column in matches"
+            )
+        tier_set = set(test_tiers)
+        tier_mask = matches["tournament_tier"].isin(tier_set).to_numpy()
+        splits = [
+            (tr, te[tier_mask[te]])
+            for tr, te in splits
+        ]
 
     for fold, (train_idx, test_idx) in enumerate(splits, start=1):
         train = matches.iloc[train_idx]
