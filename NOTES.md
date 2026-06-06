@@ -6,6 +6,8 @@ Possible problems right now
     - Tried difference penalty & team effects
     - Decided on difference penalty to put player who played in a similar team the same skill rating. Chose lambda = 3 after emprical data. 
 
+Front end
+- Website where people can create matches they like?
 
 Things I did
 - Sum to zero constraint for a baseline reference
