@@ -1,0 +1,12 @@
+{
+  "best_r2": 0.08066913718520285,
+  "best_params": {
+    "half_life_days": 161.8743199893257,
+    "l2_lambda": 2.841381970082972,
+    "threshold": 2
+  },
+  "n_trials": 200,
+  "elapsed_s": 195.78763699531555,
+  "split_strategy": "time_series",
+  "fixed_model": "ordinal"
+}

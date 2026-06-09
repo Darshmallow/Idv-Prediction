@@ -3,3 +3,5 @@ Notes on data
 - Earlier data misses many information
 - Data naming is quite inconsistent
 - Missing COA7 file (tho I can probably ask later)
+
+*How fast does competitive skill information become obsolete in a high-frequency esports environment?*
