@@ -1,0 +1,26 @@
+{
+  "best_r2": 0.03654049932714354,
+  "best_params": {
+    "half_life_days": 122.76386795875999,
+    "l2_lambda": 1.631848630778706,
+    "threshold": 3
+  },
+  "fixed_params": {},
+  "n_trials": 100,
+  "elapsed_s": 13.755752086639404,
+  "split_strategy": "time_series",
+  "fixed_model": "ordinal",
+  "train_tiers": [
+    "IVL",
+    "IJL",
+    "COA"
+  ],
+  "test_tiers": [
+    "IVL",
+    "IJL",
+    "COA"
+  ],
+  "role": "survivor",
+  "start_date": null,
+  "end_date": null
+}

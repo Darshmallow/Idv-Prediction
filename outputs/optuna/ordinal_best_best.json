@@ -1,0 +1,18 @@
+{
+  "best_r2": 0.09022300209886613,
+  "best_params": {
+    "half_life_days": 539.3868537047808,
+    "l2_lambda": 2.7683500893934383,
+    "threshold": 14
+  },
+  "fixed_params": {},
+  "n_trials": 80,
+  "elapsed_s": 196.78254580497742,
+  "split_strategy": "time_series",
+  "fixed_model": "ordinal",
+  "train_tiers": null,
+  "test_tiers": null,
+  "role": "both",
+  "start_date": null,
+  "end_date": null
+}

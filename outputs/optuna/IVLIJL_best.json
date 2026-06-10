@@ -1,0 +1,24 @@
+{
+  "best_r2": 0.06290111593199899,
+  "best_params": {
+    "half_life_days": 189.61010532909594,
+    "l2_lambda": 3.4364124190443373,
+    "threshold": 17
+  },
+  "fixed_params": {},
+  "n_trials": 80,
+  "elapsed_s": 79.55816721916199,
+  "split_strategy": "time_series",
+  "fixed_model": "ordinal",
+  "train_tiers": [
+    "IVL",
+    "IJL"
+  ],
+  "test_tiers": [
+    "IVL",
+    "IJL"
+  ],
+  "role": "both",
+  "start_date": null,
+  "end_date": null
+}

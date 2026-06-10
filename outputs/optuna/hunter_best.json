@@ -1,0 +1,26 @@
+{
+  "best_r2": 0.05594630276968915,
+  "best_params": {
+    "half_life_days": 152.89051573670062,
+    "l2_lambda": 9.854377784225028,
+    "threshold": 20
+  },
+  "fixed_params": {},
+  "n_trials": 100,
+  "elapsed_s": 2.5814499855041504,
+  "split_strategy": "time_series",
+  "fixed_model": "ordinal",
+  "train_tiers": [
+    "IVL",
+    "IJL",
+    "COA"
+  ],
+  "test_tiers": [
+    "IVL",
+    "IJL",
+    "COA"
+  ],
+  "role": "hunter",
+  "start_date": null,
+  "end_date": null
+}
