@@ -25,16 +25,10 @@ Run:
     pytest tests/ -v               # verbose
 """
 
-import sys
-import os
-
 import pandas as pd
 import pytest
 
-# Make src importable regardless of cwd
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-
-from ingest import (
+from data.ingest import (
     COLUMN_ALIASES,
     LEGACY_FILE, LEGACY_RAW_TABS, LEGACY_COA_TABS,
     IVL_FILES, IJL_FILES, COA_FILES, ALL_MODERN_FILES,

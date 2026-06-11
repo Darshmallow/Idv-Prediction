@@ -58,7 +58,7 @@ from scipy import linalg, sparse
 # Constants
 # ---------------------------------------------------------------------------
 
-_ROOT        = Path(__file__).parent.parent
+_ROOT        = Path(__file__).parent.parent.parent
 DEFAULT_DB   = str(_ROOT / "data" / "processed" / "idv.db")
 
 SURVIVOR_COLS   = [f"survivor{i}_player" for i in range(1, 5)]

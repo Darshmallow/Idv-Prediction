@@ -42,13 +42,17 @@ Public API
 
 from __future__ import annotations
 
+import sys
 from collections import defaultdict
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from scipy import linalg
 
-from bradley_terry import (
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from model.bradley_terry import (
     SURVIVOR_COLS,
     filter_complete,
     build_player_index,

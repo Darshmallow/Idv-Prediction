@@ -55,10 +55,11 @@ from sklearn.model_selection import TimeSeriesSplit
 
 # Make `src/` importable when run as a script
 _HERE = Path(__file__).parent
-if str(_HERE) not in sys.path:
-    sys.path.insert(0, str(_HERE))
+_SRC  = _HERE.parent
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
 
-from bradley_terry import (
+from model.bradley_terry import (
     SURVIVOR_COLS,
     build_design_matrix,
     build_player_index,
@@ -67,10 +68,10 @@ from bradley_terry import (
     fit,
     predict,
 )
-from ordinal import fit_ordinal, predict_expected_margin
-from team_prior import fit_with_new_player_prior
+from model.ordinal import fit_ordinal, predict_expected_margin
+from model.team_prior import fit_with_new_player_prior
 
-_ROOT      = _HERE.parent
+_ROOT      = _HERE.parent.parent
 DB_PATH    = _ROOT / "data" / "processed" / "idv.db"
 OUTPUTS    = _ROOT / "outputs"
 

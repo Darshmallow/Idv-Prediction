@@ -59,6 +59,7 @@ Public API
 from __future__ import annotations
 
 import sqlite3
+import sys
 import time
 from pathlib import Path
 
@@ -69,7 +70,9 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import TimeSeriesSplit
 
-from bradley_terry import (
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from model.bradley_terry import (
     build_design_matrix,
     build_player_index,
     compute_weights,
@@ -78,7 +81,7 @@ from bradley_terry import (
     predict,
 )
 
-_ROOT      = Path(__file__).parent.parent
+_ROOT      = Path(__file__).parent.parent.parent
 DEFAULT_DB = str(_ROOT / "data" / "processed" / "idv.db")
 OUTPUTS    = _ROOT / "outputs"
 
@@ -108,7 +111,7 @@ def _cold_start_mask(
     match where at least one player was unseen in training.
     These matches get ŷ = 0 for that player's contribution (the prior).
     """
-    from bradley_terry import SURVIVOR_COLS
+    from model.bradley_terry import SURVIVOR_COLS
 
     unseen = pd.Series(False, index=test.index)
     for pid in test["hunter_player"]:

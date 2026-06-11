@@ -58,7 +58,7 @@ from typing import Any
 
 import pandas as pd
 
-_ROOT     = Path(__file__).parent.parent
+_ROOT     = Path(__file__).parent.parent.parent
 DATA_DIR  = _ROOT / "data" / "raw_json"
 
 JSON_FILES = [

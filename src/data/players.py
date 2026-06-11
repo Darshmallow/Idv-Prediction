@@ -35,15 +35,18 @@ the *right-hand side* is the canonical name kept in the database.
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pandas as pd
 
-from ingest_json import load_id_alias_map
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from data.ingest_json import load_id_alias_map
 
 
 _HERE    = Path(__file__).parent
-_ROOT    = _HERE.parent
+_ROOT    = _HERE.parent.parent
 
 # ---------------------------------------------------------------------------
 # ✏️  MANUAL OVERRIDES — corrections layered on top of id.json

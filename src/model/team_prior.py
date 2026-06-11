@@ -49,11 +49,16 @@ Public API
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from scipy import linalg
 
-from bradley_terry import (
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from model.bradley_terry import (
     SURVIVOR_COLS,
     build_design_matrix,
     build_player_index,
@@ -232,7 +237,7 @@ def fit_with_new_player_prior(
         X, y = build_design_matrix(m, player_index)
         beta0 = fit(X, y, w, l2_lambda)
     elif model == "ordinal":
-        from ordinal import fit_ordinal
+        from model.ordinal import fit_ordinal
         res0 = fit_ordinal(m, l2_lambda=l2_lambda, weights=w)
         beta0 = res0["beta"]
         theta0 = res0["theta"]
@@ -256,7 +261,7 @@ def fit_with_new_player_prior(
         beta1  = linalg.cho_solve((c, low), b)
         return beta1, player_index
     else:
-        from ordinal import fit_ordinal
+        from model.ordinal import fit_ordinal
         res1 = fit_ordinal(m, l2_lambda=l2_lambda, weights=w,
                             init_theta=theta0, prior_mean=mu)
         return res1["beta"], player_index, res1  # also return res for theta access

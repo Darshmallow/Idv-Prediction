@@ -21,6 +21,7 @@ Public API
 from __future__ import annotations
 
 import sqlite3
+import sys
 import time
 from pathlib import Path
 
@@ -31,11 +32,13 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import TimeSeriesSplit
 
-from bradley_terry import filter_complete
-from eval import default_half_lives, sweep_half_lives as sweep_linear, summarise
-from ordinal import fit_ordinal, predict_expected_margin
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-_ROOT      = Path(__file__).parent.parent
+from model.bradley_terry import filter_complete
+from outputs.eval import default_half_lives, sweep_half_lives as sweep_linear, summarise
+from model.ordinal import fit_ordinal, predict_expected_margin
+
+_ROOT      = Path(__file__).parent.parent.parent
 DEFAULT_DB = str(_ROOT / "data" / "processed" / "idv.db")
 OUTPUTS    = _ROOT / "outputs"
 

@@ -25,8 +25,8 @@ import pandas as pd
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-_HERE    = Path(__file__).parent        # .../src/
-_ROOT    = _HERE.parent                 # project root
+_HERE    = Path(__file__).parent        # .../src/data/
+_ROOT    = _HERE.parent.parent          # project root
 DATA_DIR = str(_ROOT / "data" / "raw")
 
 # ---------------------------------------------------------------------------

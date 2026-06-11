@@ -40,13 +40,17 @@ Public API
 
 from __future__ import annotations
 
+import sys
 import time
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from bradley_terry import filter_complete
-from eval import get_splits
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from model.bradley_terry import filter_complete
+from outputs.eval import get_splits
 
 
 # ---------------------------------------------------------------------------

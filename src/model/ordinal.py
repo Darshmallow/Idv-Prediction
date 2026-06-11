@@ -62,6 +62,7 @@ Public API
 from __future__ import annotations
 
 import sqlite3
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -70,7 +71,9 @@ from scipy import sparse
 from scipy.optimize import minimize
 from scipy.special import expit, logit
 
-from bradley_terry import (
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from model.bradley_terry import (
     SURVIVOR_COLS,
     build_design_matrix,
     build_player_index,
@@ -79,7 +82,7 @@ from bradley_terry import (
 )
 
 
-_ROOT      = Path(__file__).parent.parent
+_ROOT      = Path(__file__).parent.parent.parent
 DEFAULT_DB = str(_ROOT / "data" / "processed" / "idv.db")
 N_CATS     = 5      # n_escaped ∈ {0, 1, 2, 3, 4}
 N_THRESH   = 4      # one threshold between each adjacent pair

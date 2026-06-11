@@ -41,16 +41,19 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import numpy as np
 import pandas as pd
 
-from ingest_json import read_all as read_all_json
-from players import normalize_player_ids
+from data.ingest_json import read_all as read_all_json
+from data.players import normalize_player_ids
 
 _HERE           = Path(__file__).parent
-_ROOT           = _HERE.parent
+_ROOT           = _HERE.parent.parent
 DEFAULT_DB_PATH = str(_ROOT / "data" / "processed" / "idv.db")
 
 PLAYER_ID_COLS = [

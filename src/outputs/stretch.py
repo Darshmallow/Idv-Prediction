@@ -43,6 +43,7 @@ Public API
 from __future__ import annotations
 
 import sqlite3
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -53,16 +54,18 @@ import pandas as pd
 from scipy import sparse
 from sklearn.model_selection import TimeSeriesSplit
 
-from bradley_terry import (
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from model.bradley_terry import (
     SURVIVOR_COLS,
     compute_weights,
     filter_complete,
     fit,
     predict,
 )
-from eval import default_half_lives, sweep_half_lives
+from outputs.eval import default_half_lives, sweep_half_lives
 
-_ROOT      = Path(__file__).parent.parent
+_ROOT      = Path(__file__).parent.parent.parent
 DEFAULT_DB = str(_ROOT / "data" / "processed" / "idv.db")
 OUTPUTS    = _ROOT / "outputs"
 
