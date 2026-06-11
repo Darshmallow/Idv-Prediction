@@ -20,12 +20,12 @@ is only worth doing as a secondary technical paper *if* you have time.
 
 - ✅ Research question: *"How quickly does competitive skill information
   become obsolete in a high-frequency esports environment?"*
-- ✅ One-sentence headline finding (R² ≈ 8 % under temporal CV, optimal
-  half-life ≈ 5 months — pick your phrasing once you settle the Optuna
-  number)
+- ✅ One-sentence headline finding: **R² = 9.0 % (all tiers) / 8.5 %
+  (top tiers) under temporal CV; optimal half-life τ\* ≈ 182 days
+  (top tiers) / 539 days (all tiers)**
 - ✅ Quant-trading analog: **alpha decay** — the structurally identical
   problem of measuring how fast historical information becomes stale
-- ✅ Concrete subject: Identity V pro esports, ~15,700 game halves,
+- ✅ Concrete subject: Identity V pro esports, 15,691 game halves,
   2020-06-25 → 2026-05-05, six competitive tiers
 - 🟡 Why this dataset specifically: 6 years, three tiers, a documented
   meta shift inside the window — natural test bed for time-decay
@@ -39,13 +39,21 @@ is only worth doing as a secondary technical paper *if* you have time.
 
 - ✅ Data source: 4 JSON files in `data/raw_json/` covering all
   competitive events 2020-06 → 2026-05
-- ✅ Six tournament tiers, in rough order of competitive intensity:
-  IVL, IJL, COA, IVS, IVT, IVC. Sample counts per tier.
+- ✅ Six tournament tiers with confirmed half-match counts:
+
+  | Tier | Halves | Notes |
+  |------|-------:|-------|
+  | IVL  |  6,877 | Main league; best-identified |
+  | COA  |  3,946 | International; cross-region calibration |
+  | IJL  |  2,561 | Japanese league |
+  | IVC  |  1,336 | |
+  | IVT  |    549 | |
+  | IVS  |    422 | |
+  | **Total** | **15,691** | |
+
 - ✅ All 6 tiers included in BOTH training AND test sets — overseas
   data calibrates IVL/IJL players whom they meet at international
   events (COA)
-- 🟡 Missing data: COA7 (2024 international finals) is not in any source;
-  documented as a gap rather than imputed
 
 ### 2.2 Schema and processing pipeline
 
@@ -87,7 +95,14 @@ is only worth doing as a secondary technical paper *if* you have time.
   (the character 楠). Fixed by passing `keep_default_na=False`.
 - ⚪ Detailed format of `id.json` (`{canonical_id: [canonical, alias_1, …]}`)
 
-### 2.5 Testing the data layer
+### 2.5 Player population (confirmed counts)
+
+- ✅ 2,049 unique players across all tiers:
+  - 1,516 survivors-only, 462 hunters-only, 71 dual-role
+- ✅ Top-tier model (IVL/IJL/COA) rates 1,383 players:
+  - 1,018 survivors, 365 hunters
+
+### 2.6 Testing the data layer
 
 - 🟡 181 pytest unit + integration tests covering ingestion, alias
   normalization, and schema construction
@@ -201,13 +216,20 @@ is only worth doing as a secondary technical paper *if* you have time.
 
 - ✅ Model: **ordinal proportional-odds Bradley-Terry with single-rate
   exponential decay and an informed new-player team-mean prior**
-- ✅ Headline R² (fill in the Optuna-optimised number; the previous
-  non-Optuna best was 8.04 %)
-- ✅ Optimal τ ≈ 110-140 days (~4-5 months) under the optimiser
+- ✅ Confirmed headline R² (pooled across 5 CV folds):
+
+  | Config | τ\* | RMSE | R² vs null | R² vs naive rolling |
+  |--------|----:|-----:|-----------:|--------------------:|
+  | Top tiers (IVL/IJL/COA) | 182 d | 1.107 | **8.5 %** | **12.4 %** |
+  | All tiers | 539 d | 1.122 | **9.0 %** | **14.2 %** |
+
+- ✅ Per-fold R² (top tiers): 2.4 % → 4.8 % → 6.1 % → 14.4 % → 15.2 %
+  — gains concentrate in later folds as rating history accumulates
+- ✅ Optimal τ ≈ 182 days (~6 months) for top tiers under Optuna
 - ✅ Same order of magnitude across every sub-population sweep
   (role / tier / temporal stretch analyses, §6)
-- ✅ Headline plot: `outputs/sweep.png` — half-life vs RMSE curve
-- 🟡 Quant framing: "skill information half-life of about 4-5 months"
+- ✅ Headline plot: `outputs/graphs/comparison_sweep_top_tiers.png` — half-life vs RMSE curve
+- 🟡 Quant framing: "skill information half-life of about 6 months"
   in the same way alpha decay is reported in trading
 
 ---
@@ -366,8 +388,14 @@ max, otherwise the writeup feels like a catalogue of negatives.)
 
 - 🟡 "Predict each match by summing player's K=30-match rolling-average
   margin"
-- 🟡 Under strict CV: **K=30 → worse than null model**, K=500 ≈ matches
-  BT but with intra-fold leakage
+- 🟡 Under strict CV: **K=30 → RMSE 1.182 (top tiers), worse than the
+  null model at 1.157** — rolling averages add noise rather than
+  signal, especially for cold-start players
+- 🟡 BT achieves R² = 12.4 % (top tiers) / 14.2 % (all tiers) relative
+  to the naive rolling baseline — the opponent-adjustment and
+  shrinkage are doing real work
+- 🟡 Per-fold R² of BT vs naive rolling (top tiers):
+  7.9 % → 12.8 % → 7.1 % → 17.2 % → 17.5 %
 - 🟡 Strong sanity check: shows BT actually earns its accuracy through
   opponent adjustment + shrinkage, not by trivially capturing recent
   results
@@ -473,11 +501,39 @@ Each is a one-liner you can say in an interview without sounding rehearsed:
 
 ---
 
-## 13. Reproducibility
+## 13. Interactive website
+
+- ✅ Static HTML/CSS/JS site in `website/` (or `docs/` after GitHub Pages
+  rename), served at `http://localhost:7123` locally
+- ✅ **Single Half tab**: search for 1 hunter + 4 survivors → predicted
+  escape probability distribution (bar chart + table), most-likely
+  score chip, η value
+- ✅ **BoX Series tab**: two full teams (hunter + 4 survivors each),
+  Bo3/Bo5/Bo7 format selector → series win probability (visual bar),
+  per-round odds, AND a Monte Carlo simulation of a full series
+  - Each round draws from the model's half-distributions, computes
+    IDV scoring (0 esc = 0:5, 1 = 1:3, 2 = 2:2, 3 = 3:1, 4 = 5:0),
+    applies real tiebreaker chain (round wins → cumulative score →
+    extra round → margin tiebreaker)
+  - Series ends as soon as one team reaches ceil(N/2) wins
+  - Re-simulate button for instant replays
+- ✅ **Leaderboard tab**: searchable, sortable table of all rated players,
+  filtered by role (hunters / survivors ranked independently),
+  optional "30+ games" filter
+- ✅ Series probability uses DP over (winsA, winsB, cumScoreDiff) states —
+  not negative binomial — giving exact probabilities under the full
+  tiebreaker ruleset
+- ✅ Floating-point bug fixed: expSA ≈ expSB comparison now uses ε = 1e-9
+  guard to prevent false asymmetry when teams are identical
+- 🟡 Deployable to GitHub Pages from `/docs` folder (rename `website/`)
+
+## 14. Reproducibility
 
 - ✅ `python src/db.py` → builds `data/processed/idv.db` from JSON files
 - ✅ `python src/eval.py` → runs the headline half-life sweep
 - ✅ `python src/optimize.py` → runs Optuna hyperparameter search
+- ✅ `python src/outputs/export_ratings.py` → writes `docs/js/data.js`
+  for the website
 - 🟡 `python src/stretch.py` → role / tier / temporal sub-analyses
 - 🟡 `python src/ordinal_eval.py` → linear-vs-ordinal robustness
 - 🟡 `pytest tests/` → 181 tests
@@ -507,16 +563,16 @@ A possible top-level structure (reorder as you prefer):
 
 ## 15. Outputs already on disk you can embed
 
-- ✅ `outputs/sweep.png` — headline half-life sweep
-- 🟡 `outputs/stretch_role_asymmetry.png` — hunter vs survivor
-- 🟡 `outputs/stretch_tier_comparison.png` — IVL / IJL / COA
-- 🟡 `outputs/stretch_temporal_stability.png` — pre- vs post-2023
-- 🟡 `outputs/ordinal_vs_linear.png` — robustness check
-- 🟡 `outputs/r2_heatmap.png` — per-fold R² (TimeSeriesSplit)
-- 🟡 `outputs/r2_heatmap_seasons.png` — per-fold R² (season splits)
-- ⚪ `outputs/regime_decay_tss_heatmap.png` — old regime-decay sweep
-  (only include if you discuss regime decay)
-- ✅ The findings docs in `outputs/*_findings.md` for citation depth
+- ✅ `outputs/graphs/comparison_sweep_top_tiers.png` — headline half-life sweep (BT vs naive vs null)
+- ✅ `outputs/graphs/comparison_sweep_all_tiers.png` — same for all tiers
+- ✅ `outputs/graphs/calibration_top_tiers.png` — calibration plot
+- ✅ `outputs/graphs/confusion_matrix_top_tiers.png` — 3-class and 5-class confusion matrices
+- 🟡 `outputs/graphs/stretch_role_asymmetry.png` — hunter vs survivor τ comparison
+- 🟡 `outputs/graphs/stretch_tier_comparison.png` — IVL / IJL / COA
+- 🟡 `outputs/graphs/stretch_temporal_stability.png` — pre- vs post-2023
+- 🟡 `outputs/graphs/ordinal_vs_linear.png` — robustness check
+- 🟡 `outputs/graphs/r2_heatmap.png` — per-fold R² (TimeSeriesSplit)
+- ✅ The findings docs in `outputs/findings/*_findings.md` for citation depth
 
 ---
 
@@ -538,20 +594,27 @@ A possible top-level structure (reorder as you prefer):
 
 ---
 
-## 17. Sanity check on the "headline" number
+## 17. Confirmed headline numbers (resolved)
 
-Once you've run Optuna on the final config (ordinal + single-rate
-decay + new-player prior, all tiers, TimeSeriesSplit), make sure
-your headline matches what you actually got. The previous-best on
-xlsx data was R² = 8.04 %; with JSON data and the all-tiers test
-set, expect 7.5-8.5 % depending on Optuna's exact landing spot.
+These were previously marked as TODOs — now confirmed from full Optuna
+runs on the final config (ordinal + single-rate decay + new-player prior,
+TimeSeriesSplit, 5 folds):
 
-- ✅ Always report the **pooled R²** (computed from pooled MSE
-  across folds), not the mean of per-fold R²s, in the headline.
-  They differ slightly when folds have different null variances.
-- ✅ Always mention the **null baseline** for context — "8 % may
-  sound modest, but it's measured against a null model that already
-  gets ~38 % of matches right by always predicting a draw"
-- 🟡 Per-fold R²s reveal fold-3 weakness honestly; either include the
-  per-fold table or summarise as a range ("R² ranges from −1 % to
-  +18 % across folds")
+| Metric | Top tiers | All tiers |
+|--------|----------:|----------:|
+| τ\* | 182 d | 539 d |
+| Null RMSE | 1.157 | 1.176 |
+| BT RMSE | 1.107 | 1.122 |
+| Naive rolling RMSE | 1.182 | 1.211 |
+| **R² vs null** | **8.5 %** | **9.0 %** |
+| **R² vs naive rolling** | **12.4 %** | **14.2 %** |
+
+- ✅ Always report the **pooled R²** (computed from pooled MSE across
+  folds), not the mean of per-fold R²s — they differ when folds have
+  different null variances
+- ✅ Per-fold R² range (top tiers): **2.4 % → 15.2 %**; fold 3 is the
+  weakest across all variants (the 2023 meta-shift fold)
+- ✅ Naive rolling baseline is *worse* than the null in all configs —
+  rolling averages hurt more than they help due to cold-start noise;
+  this makes BT's improvement over naive (12–14 %) the more honest
+  headline for "how much does the model add beyond a simple baseline"
