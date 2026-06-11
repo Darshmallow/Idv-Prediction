@@ -100,6 +100,7 @@ header {
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   max-width: 1100px;
+  margin: 0 auto;
 }
 .box-grid {
   grid-template-columns: 1fr 280px 1fr;
@@ -333,7 +334,7 @@ label {
 .game-probs strong { color: var(--text); }
 
 /* ── Leaderboard ─────────────────────────────────────────────── */
-.leaderboard-card { max-width: 900px; }
+.leaderboard-card { max-width: 900px; margin: 0 auto; }
 .lb-controls {
   display: flex;
   gap: 12px;
@@ -404,10 +405,149 @@ label {
 .lb-table .td-beta { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--gold); }
 .lb-table .td-games { color: var(--muted); font-variant-numeric: tabular-nums; }
 .lb-table .td-last { color: var(--muted); font-size: .8rem; }
+.min-games-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .82rem;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  margin: 0;
+}
+.min-games-label input[type="checkbox"] {
+  accent-color: var(--accent-a);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
 .lb-footer {
   margin-top: 12px;
   font-size: .78rem;
   color: var(--text-dim);
+}
+
+/* ── Predicted score ─────────────────────────────────────────── */
+.predicted-result {
+  font-size: .88rem;
+  color: var(--text);
+}
+.pred-label {
+  color: var(--muted);
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-weight: 500;
+  display: inline;
+  margin: 0;
+}
+.score-chip {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  padding: 1px 7px;
+  font-size: .9em;
+}
+
+/* ── Series simulation ───────────────────────────────────────── */
+#box-sim-wrap {
+  max-width: 1100px;
+  margin: 20px auto 0;
+}
+#box-simulation {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+.sim-header {
+  font-size: .8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+.sim-rounds {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.sim-round {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 20px;
+  min-width: 130px;
+  text-align: center;
+  flex: 1;
+}
+.sim-extra {
+  border-style: dashed;
+  opacity: .9;
+}
+.sim-round-label {
+  font-size: .72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 8px;
+}
+.sim-score {
+  font-size: 2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.sim-dash {
+  color: var(--muted);
+  font-weight: 400;
+}
+.sim-round-winner {
+  font-size: .8rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.sim-draw {
+  color: var(--muted);
+}
+.sim-halves {
+  font-size: .72rem;
+  color: var(--text-dim);
+}
+.sim-tie-note {
+  font-size: .8rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+  font-style: italic;
+}
+.sim-result {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+.sim-resim-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: .85rem;
+  font-weight: 600;
+  padding: 7px 18px;
+  transition: all .15s;
+}
+.sim-resim-btn:hover {
+  border-color: var(--accent-a);
+  color: var(--text);
 }
 
 /* ── Scrollbar ───────────────────────────────────────────────── */
@@ -415,3 +555,38 @@ label {
 ::-webkit-scrollbar-track { background: var(--surface); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .box-grid {
+    grid-template-columns: 1fr;
+  }
+  .controls-card .btn-primary { margin-top: 16px; }
+}
+
+@media (max-width: 768px) {
+  header { padding: 16px 18px 14px; }
+  .header-inner h1 { font-size: 1.35rem; }
+  .tab-bar { padding: 10px 12px 0; gap: 2px; }
+  .tab { font-size: .82rem; padding: 8px 14px 10px; }
+  .tab-panel { padding: 14px 12px; }
+
+  .panel-grid { gap: 12px; }
+  .halves-grid { grid-template-columns: 1fr; }
+
+  .card { padding: 16px; }
+  .card h2 { font-size: .95rem; }
+
+  .format-btns { gap: 6px; }
+  .fmt-btn { padding: 7px 4px; font-size: .8rem; }
+
+  .sim-rounds { gap: 10px; }
+  .sim-round { min-width: unset; padding: 12px 14px; }
+  .sim-score { font-size: 1.55rem; }
+
+  .lb-controls { flex-direction: column; align-items: stretch; }
+  .lb-search { min-width: unset; }
+  .role-btns { justify-content: flex-start; }
+
+  .series-labels { font-size: .78rem; }
+}

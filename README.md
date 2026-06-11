@@ -1,7 +1,29 @@
-Notes on data
-- Hunter aggregate statistics (hits, knockdowns, hunter ID per game) were not consistently recorded in the 赛后数据 sheet until 2024 fall regular season. The hunter efficiency metric uses data from 2024秋季常规赛 onward (14 files). All other models use the full dataset.
-- Earlier data misses many information
-- Data naming is quite inconsistent
-- Missing COA7 file (tho I can probably ask later)
+# How fast does competitive skill information become obsolete in a high-frequency esports environment?
 
-*How fast does competitive skill information become obsolete in a high-frequency esports environment?*
+This project
+Thank you Identity V Bwiki.
+Website:
+Technical write-up:
+
+## Introduction
+In this project, we analyzed ~15,700 games of pro Identity V esports to assess the impact of player skills on the game result, and used this information to compute the half-life decay for skill information. Essentially, we are measuring how fast historical information becomes stale.
+
+In the top tiers competitions, evaluated with temporal CV, our model achieves 12.4% $R^2$ against the naive model (which takes the average performance of the past 30 games for each player), with the best fold reaching 17.5% $R^2$. The optimal half-life is 182 days, around half of a year. For all tiers competitions, our model achieves 14.2% $R^2$ , with the best fold reaching 18.9% $R^2$. The optimal half-life for all tiers is 540 days.
+
+## Data & Outcome
+Identity V is an asymmetry game consisting of 1 hunter and 4 survivors in each game, where the survivors try to escape and hunter try to prevent survivors from escaping.
+Data span from May 2020 to May 2026, including 6877 games from IVL, 3946 games from COA, 2561 games from IJL, 1336 games from IVC, 549 games from IVT, and 422 games from IVS. The data were mostly recorded manually by Identity V Bwiki. There are 1516 survivor players, 462 hunter players, and 71 players who played both. For analysis on the top tiers, only games from IVL, IJL, and COA are included.
+
+ The outcome per game is determined by a margin = n_escaped - 2 ∈ {−2, −1, 0, +1, +2}. That is, a positive score indicates a survivor advantage, while a negative score indicates a hunter advantage. 
+
+## Model
+Each player P is assigned a score, $\beta_P$, which is a representation of their skill level. We compute a continuous margin by
+$$\mathbb{E}[\text{margin}_i] = \tfrac{1}{4} \sum_{k=1}^4 \beta^S_{s_{ik}} - \beta^H_{h_i}.$$
+Intuitively, this can be understood as 1 skill unit is roughly equivalent to 1 escape on average. A high $\beta$ value means more skilled at the respective role.
+
+### Optimization
+Since the difficulty of going from 0 escape to 1 escape is not the same as 3 escape to 4 escapes, the 
+
+### Regularization
+
+

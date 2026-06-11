@@ -106,9 +106,9 @@
       <div class="card controls-card">
         <h2>Format</h2>
         <div class="format-btns">
-          <button class="fmt-btn active" data-n="2">Bo3</button>
-          <button class="fmt-btn" data-n="3">Bo5</button>
-          <button class="fmt-btn" data-n="4">Bo7</button>
+          <button class="fmt-btn active" data-rounds="3">Bo3</button>
+          <button class="fmt-btn" data-rounds="5">Bo5</button>
+          <button class="fmt-btn" data-rounds="7">Bo7</button>
         </div>
         <button class="btn-primary" id="predict-box">Predict Series</button>
 
@@ -148,6 +148,11 @@
 
     </div>
 
+    <!-- Simulation -->
+    <div id="box-sim-wrap" class="hidden">
+      <div id="box-simulation"></div>
+    </div>
+
     <!-- Half-level breakdown -->
     <div id="box-halves" class="panel-grid halves-grid hidden">
       <div class="card">
@@ -169,10 +174,13 @@
       <div class="lb-controls">
         <input type="text" id="lb-search" placeholder="Search player…" class="lb-search">
         <div class="role-btns">
-          <button class="role-btn active" data-role="all">All</button>
-          <button class="role-btn" data-role="hunter">Hunters</button>
+          <button class="role-btn active" data-role="hunter">Hunters</button>
           <button class="role-btn" data-role="survivor">Survivors</button>
         </div>
+        <label class="min-games-label">
+          <input type="checkbox" id="lb-min-games" checked>
+          30+ games only
+        </label>
       </div>
       <div class="lb-table-wrap">
         <table class="lb-table" id="lb-table">

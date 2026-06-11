@@ -53,7 +53,7 @@ def get_thresholds() -> list[float]:
 
 if __name__ == "__main__":
     ratings_path = _ROOT / "outputs" / "db_export" / "ratings_top.csv"
-    df = pd.read_csv(ratings_path)
+    df = pd.read_csv(ratings_path, keep_default_na=False)
     df = df.sort_values("beta", ascending=False)
 
     print("Computing model thresholds…")

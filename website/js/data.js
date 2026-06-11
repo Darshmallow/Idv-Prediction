@@ -2451,6 +2451,12 @@ const MODEL = {
       "lastSeen": "2026-03-21"
     },
     {
+      "id": "nan",
+      "beta": 0.3286,
+      "nGames": 418,
+      "lastSeen": "2025-12-11"
+    },
+    {
       "id": "ppxia",
       "beta": 0.3259,
       "nGames": 577,
@@ -2511,13 +2517,13 @@ const MODEL = {
       "lastSeen": "2026-03-07"
     },
     {
-      "id": "nagi",
+      "id": "xiaochu",
       "beta": 0.2504,
       "nGames": 6,
       "lastSeen": "2026-03-01"
     },
     {
-      "id": "xiaochu",
+      "id": "nagi",
       "beta": 0.2504,
       "nGames": 6,
       "lastSeen": "2026-03-01"
@@ -2643,13 +2649,13 @@ const MODEL = {
       "lastSeen": "2026-03-01"
     },
     {
-      "id": "ziro",
+      "id": "citie",
       "beta": 0.1337,
       "nGames": 34,
       "lastSeen": "2026-05-05"
     },
     {
-      "id": "citie",
+      "id": "ziro",
       "beta": 0.1337,
       "nGames": 34,
       "lastSeen": "2026-05-05"
@@ -2781,13 +2787,13 @@ const MODEL = {
       "lastSeen": "2026-03-21"
     },
     {
-      "id": "zeroshi",
+      "id": "joy",
       "beta": 0.0796,
       "nGames": 11,
       "lastSeen": "2026-03-21"
     },
     {
-      "id": "joy",
+      "id": "zeroshi",
       "beta": 0.0796,
       "nGames": 11,
       "lastSeen": "2026-03-21"
@@ -3027,13 +3033,13 @@ const MODEL = {
       "lastSeen": "2026-03-15"
     },
     {
-      "id": "huanxue",
+      "id": "pinpin",
       "beta": 0.0247,
       "nGames": 19,
       "lastSeen": "2025-04-18"
     },
     {
-      "id": "pinpin",
+      "id": "huanxue",
       "beta": 0.0247,
       "nGames": 19,
       "lastSeen": "2025-04-18"
@@ -3321,16 +3327,16 @@ const MODEL = {
       "lastSeen": "2025-02-23"
     },
     {
-      "id": "lasa",
-      "beta": 0.0054,
-      "nGames": 9,
-      "lastSeen": "2024-07-28"
-    },
-    {
       "id": "insomnia",
       "beta": 0.0054,
       "nGames": 9,
       "lastSeen": "2026-03-01"
+    },
+    {
+      "id": "lasa",
+      "beta": 0.0054,
+      "nGames": 9,
+      "lastSeen": "2024-07-28"
     },
     {
       "id": "billy",
@@ -3405,12 +3411,6 @@ const MODEL = {
       "lastSeen": "2023-09-28"
     },
     {
-      "id": "fall",
-      "beta": 0.003,
-      "nGames": 2,
-      "lastSeen": "2024-03-09"
-    },
-    {
       "id": "ayane",
       "beta": 0.003,
       "nGames": 2,
@@ -3421,6 +3421,12 @@ const MODEL = {
       "beta": 0.003,
       "nGames": 2,
       "lastSeen": "2024-08-24"
+    },
+    {
+      "id": "fall",
+      "beta": 0.003,
+      "nGames": 2,
+      "lastSeen": "2024-03-09"
     },
     {
       "id": "goguma",
@@ -3627,13 +3633,13 @@ const MODEL = {
       "lastSeen": "2021-05-01"
     },
     {
-      "id": "nelkiesus",
+      "id": "tonyma",
       "beta": 0.0011,
       "nGames": 3,
       "lastSeen": "2022-02-19"
     },
     {
-      "id": "tonyma",
+      "id": "nelkiesus",
       "beta": 0.0011,
       "nGames": 3,
       "lastSeen": "2022-02-19"
@@ -3645,13 +3651,13 @@ const MODEL = {
       "lastSeen": "2022-02-19"
     },
     {
-      "id": "amomaly",
+      "id": "l\u2006c",
       "beta": 0.0011,
       "nGames": 3,
       "lastSeen": "2023-02-26"
     },
     {
-      "id": "l\u2006c",
+      "id": "amomaly",
       "beta": 0.0011,
       "nGames": 3,
       "lastSeen": "2023-02-26"
@@ -3723,19 +3729,19 @@ const MODEL = {
       "lastSeen": "2022-04-04"
     },
     {
-      "id": "cousin",
-      "beta": 0.0007,
-      "nGames": 5,
-      "lastSeen": "2022-02-27"
-    },
-    {
       "id": "ran",
       "beta": 0.0007,
       "nGames": 5,
       "lastSeen": "2022-02-27"
     },
     {
-      "id": "ghostqueen",
+      "id": "cousin",
+      "beta": 0.0007,
+      "nGames": 5,
+      "lastSeen": "2022-02-27"
+    },
+    {
+      "id": "proudsensei",
       "beta": 0.0006,
       "nGames": 4,
       "lastSeen": "2022-02-20"
@@ -3747,7 +3753,7 @@ const MODEL = {
       "lastSeen": "2022-02-20"
     },
     {
-      "id": "proudsensei",
+      "id": "ghostqueen",
       "beta": 0.0006,
       "nGames": 4,
       "lastSeen": "2022-02-20"
@@ -3975,16 +3981,16 @@ const MODEL = {
       "lastSeen": "2023-06-24"
     },
     {
-      "id": "kokua",
-      "beta": 0.0002,
-      "nGames": 2,
-      "lastSeen": "2022-09-10"
-    },
-    {
       "id": "why",
       "beta": 0.0002,
       "nGames": 2,
       "lastSeen": "2022-02-19"
+    },
+    {
+      "id": "kokua",
+      "beta": 0.0002,
+      "nGames": 2,
+      "lastSeen": "2022-09-10"
     },
     {
       "id": "ruka",
@@ -3999,16 +4005,16 @@ const MODEL = {
       "lastSeen": "2021-03-14"
     },
     {
-      "id": "earth",
-      "beta": 0.0001,
-      "nGames": 6,
-      "lastSeen": "2021-08-22"
-    },
-    {
       "id": "lingtian",
       "beta": 0.0001,
       "nGames": 6,
       "lastSeen": "2021-03-07"
+    },
+    {
+      "id": "earth",
+      "beta": 0.0001,
+      "nGames": 6,
+      "lastSeen": "2021-08-22"
     },
     {
       "id": "yorhan",
@@ -4179,13 +4185,13 @@ const MODEL = {
       "lastSeen": "2023-08-05"
     },
     {
-      "id": "ajax",
+      "id": "luoji",
       "beta": 0.0,
       "nGames": 3,
       "lastSeen": "2026-03-02"
     },
     {
-      "id": "luoji",
+      "id": "ajax",
       "beta": 0.0,
       "nGames": 3,
       "lastSeen": "2026-03-02"
@@ -4215,13 +4221,13 @@ const MODEL = {
       "lastSeen": "2021-03-07"
     },
     {
-      "id": "potal",
+      "id": "bagguli",
       "beta": 0.0,
       "nGames": 5,
       "lastSeen": "2022-02-20"
     },
     {
-      "id": "bagguli",
+      "id": "potal",
       "beta": 0.0,
       "nGames": 5,
       "lastSeen": "2022-02-20"
@@ -4245,13 +4251,13 @@ const MODEL = {
       "lastSeen": "2021-02-28"
     },
     {
-      "id": "gary",
+      "id": "shushu",
       "beta": 0.0,
       "nGames": 5,
       "lastSeen": "2024-03-10"
     },
     {
-      "id": "shushu",
+      "id": "gary",
       "beta": 0.0,
       "nGames": 5,
       "lastSeen": "2024-03-10"
@@ -4317,12 +4323,6 @@ const MODEL = {
       "lastSeen": "2021-03-13"
     },
     {
-      "id": "anaisn",
-      "beta": -0.0001,
-      "nGames": 2,
-      "lastSeen": "2021-03-06"
-    },
-    {
       "id": "fallenwingn",
       "beta": -0.0001,
       "nGames": 2,
@@ -4336,6 +4336,12 @@ const MODEL = {
     },
     {
       "id": "lusn",
+      "beta": -0.0001,
+      "nGames": 2,
+      "lastSeen": "2021-03-06"
+    },
+    {
+      "id": "anaisn",
       "beta": -0.0001,
       "nGames": 2,
       "lastSeen": "2021-03-06"
@@ -4371,7 +4377,7 @@ const MODEL = {
       "lastSeen": "2021-03-12"
     },
     {
-      "id": "laosan",
+      "id": "wn",
       "beta": -0.0001,
       "nGames": 17,
       "lastSeen": "2021-04-16"
@@ -4383,13 +4389,13 @@ const MODEL = {
       "lastSeen": "2021-04-16"
     },
     {
-      "id": "wn",
+      "id": "laosan",
       "beta": -0.0001,
       "nGames": 17,
       "lastSeen": "2021-04-16"
     },
     {
-      "id": "pyapya",
+      "id": "puli",
       "beta": -0.0001,
       "nGames": 2,
       "lastSeen": "2021-02-26"
@@ -4407,7 +4413,7 @@ const MODEL = {
       "lastSeen": "2021-02-26"
     },
     {
-      "id": "puli",
+      "id": "pyapya",
       "beta": -0.0001,
       "nGames": 2,
       "lastSeen": "2021-02-26"
@@ -4503,13 +4509,13 @@ const MODEL = {
       "lastSeen": "2021-03-27"
     },
     {
-      "id": "paiq",
+      "id": "machado",
       "beta": -0.0001,
       "nGames": 3,
       "lastSeen": "2021-03-13"
     },
     {
-      "id": "machado",
+      "id": "paiq",
       "beta": -0.0001,
       "nGames": 3,
       "lastSeen": "2021-03-13"
@@ -4533,13 +4539,13 @@ const MODEL = {
       "lastSeen": "2021-03-14"
     },
     {
-      "id": "liquor",
+      "id": "perroquet",
       "beta": -0.0002,
       "nGames": 2,
       "lastSeen": "2021-03-07"
     },
     {
-      "id": "perroquet",
+      "id": "liquor",
       "beta": -0.0002,
       "nGames": 2,
       "lastSeen": "2021-03-07"
@@ -4587,6 +4593,18 @@ const MODEL = {
       "lastSeen": "2022-07-02"
     },
     {
+      "id": "goo",
+      "beta": -0.0002,
+      "nGames": 3,
+      "lastSeen": "2021-03-13"
+    },
+    {
+      "id": "leglag",
+      "beta": -0.0002,
+      "nGames": 3,
+      "lastSeen": "2021-03-13"
+    },
+    {
       "id": "maple",
       "beta": -0.0002,
       "nGames": 3,
@@ -4599,34 +4617,22 @@ const MODEL = {
       "lastSeen": "2021-03-13"
     },
     {
-      "id": "leglag",
-      "beta": -0.0002,
-      "nGames": 3,
-      "lastSeen": "2021-03-13"
-    },
-    {
-      "id": "goo",
-      "beta": -0.0002,
-      "nGames": 3,
-      "lastSeen": "2021-03-13"
-    },
-    {
       "id": "tosa",
       "beta": -0.0002,
       "nGames": 5,
       "lastSeen": "2021-03-07"
     },
     {
-      "id": "hata",
-      "beta": -0.0002,
-      "nGames": 2,
-      "lastSeen": "2021-08-21"
-    },
-    {
       "id": "theflash",
       "beta": -0.0002,
       "nGames": 2,
       "lastSeen": "2021-08-22"
+    },
+    {
+      "id": "hata",
+      "beta": -0.0002,
+      "nGames": 2,
+      "lastSeen": "2021-08-21"
     },
     {
       "id": "66",
@@ -4647,13 +4653,13 @@ const MODEL = {
       "lastSeen": "2022-02-27"
     },
     {
-      "id": "smile",
+      "id": "jasugo",
       "beta": -0.0002,
       "nGames": 5,
       "lastSeen": "2022-08-21"
     },
     {
-      "id": "jasugo",
+      "id": "smile",
       "beta": -0.0002,
       "nGames": 5,
       "lastSeen": "2022-08-21"
@@ -4689,6 +4695,12 @@ const MODEL = {
       "lastSeen": "2021-03-27"
     },
     {
+      "id": "ovt",
+      "beta": -0.0002,
+      "nGames": 3,
+      "lastSeen": "2021-02-28"
+    },
+    {
       "id": "mias",
       "beta": -0.0002,
       "nGames": 3,
@@ -4696,12 +4708,6 @@ const MODEL = {
     },
     {
       "id": "numnums",
-      "beta": -0.0002,
-      "nGames": 3,
-      "lastSeen": "2021-02-28"
-    },
-    {
-      "id": "ovt",
       "beta": -0.0002,
       "nGames": 3,
       "lastSeen": "2021-02-28"
@@ -4863,13 +4869,13 @@ const MODEL = {
       "lastSeen": "2022-02-27"
     },
     {
-      "id": "nanzhiye",
+      "id": "seed",
       "beta": -0.0004,
       "nGames": 16,
       "lastSeen": "2023-03-26"
     },
     {
-      "id": "seed",
+      "id": "nanzhiye",
       "beta": -0.0004,
       "nGames": 16,
       "lastSeen": "2023-03-26"
@@ -4947,10 +4953,10 @@ const MODEL = {
       "lastSeen": "2023-03-12"
     },
     {
-      "id": "489",
+      "id": "sakana",
       "beta": -0.0006,
       "nGames": 2,
-      "lastSeen": "2022-06-25"
+      "lastSeen": "2022-02-20"
     },
     {
       "id": "chicken",
@@ -4965,10 +4971,10 @@ const MODEL = {
       "lastSeen": "2022-02-20"
     },
     {
-      "id": "sakana",
+      "id": "489",
       "beta": -0.0006,
       "nGames": 2,
-      "lastSeen": "2022-02-20"
+      "lastSeen": "2022-06-25"
     },
     {
       "id": "kasper",
@@ -4983,13 +4989,13 @@ const MODEL = {
       "lastSeen": "2021-07-16"
     },
     {
-      "id": "heuka",
+      "id": "fugo",
       "beta": -0.0006,
       "nGames": 2,
       "lastSeen": "2022-02-19"
     },
     {
-      "id": "fugo",
+      "id": "heuka",
       "beta": -0.0006,
       "nGames": 2,
       "lastSeen": "2022-02-19"
@@ -5151,13 +5157,13 @@ const MODEL = {
       "lastSeen": "2022-02-19"
     },
     {
-      "id": "gugu",
+      "id": "ningning",
       "beta": -0.0009,
       "nGames": 3,
       "lastSeen": "2022-02-19"
     },
     {
-      "id": "ningning",
+      "id": "gugu",
       "beta": -0.0009,
       "nGames": 3,
       "lastSeen": "2022-02-19"
@@ -5235,13 +5241,13 @@ const MODEL = {
       "lastSeen": "2023-02-17"
     },
     {
-      "id": "sherlock",
+      "id": "haoran",
       "beta": -0.0012,
       "nGames": 5,
       "lastSeen": "2022-03-27"
     },
     {
-      "id": "haoran",
+      "id": "sherlock",
       "beta": -0.0012,
       "nGames": 5,
       "lastSeen": "2022-03-27"
