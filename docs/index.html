@@ -9,67 +9,68 @@
 <body>
   <header>
     <div class="header-inner">
-      <h1>IDV Match Predictor</h1>
-      <p class="subtitle">Bradley-Terry ordinal rating model · IVL / IJL / COA</p>
+      <h1 data-i18n="title">IDV Match Predictor</h1>
+      <p class="subtitle" data-i18n="subtitle">Bradley-Terry ordinal rating model · IVL / IJL / COA</p>
     </div>
+    <button class="lang-toggle" id="lang-toggle">中文</button>
   </header>
 
   <nav class="tab-bar">
-    <button class="tab active" data-tab="single">Single Half</button>
-    <button class="tab" data-tab="box">BoX Series</button>
-    <button class="tab" data-tab="leaderboard">Leaderboard</button>
+    <button class="tab active" data-tab="single" data-i18n="tab_single">Single Half</button>
+    <button class="tab" data-tab="box" data-i18n="tab_box">BoX Series</button>
+    <button class="tab" data-tab="leaderboard" data-i18n="tab_leaderboard">Leaderboard</button>
   </nav>
 
   <!-- ─── SINGLE HALF ─────────────────────────────────────────── -->
   <section id="tab-single" class="tab-panel active">
     <div class="panel-grid">
       <div class="card">
-        <h2>Select Players</h2>
+        <h2 data-i18n="select_players">Select Players</h2>
 
         <div class="form-row">
-          <label>Hunter</label>
+          <label data-i18n="hunter_label">Hunter</label>
           <div class="searchable-select" id="ss-hunter-single">
-            <input type="text" class="ss-input" placeholder="Search hunter…" autocomplete="off">
+            <input type="text" class="ss-input" data-i18n-ph="search_hunter_ph" placeholder="Search hunter…" autocomplete="off">
             <div class="ss-dropdown"></div>
           </div>
         </div>
 
         <div class="survivors-block">
-          <label>Survivors (4)</label>
+          <label data-i18n="survivors_label">Survivors (4)</label>
           <div id="single-survivors">
             <div class="form-row s-row">
               <div class="searchable-select" data-role="survivor" data-idx="0">
-                <input type="text" class="ss-input" placeholder="Survivor 1" autocomplete="off">
+                <input type="text" class="ss-input" data-i18n-ph="surv1_ph" placeholder="Survivor 1" autocomplete="off">
                 <div class="ss-dropdown"></div>
               </div>
             </div>
             <div class="form-row s-row">
               <div class="searchable-select" data-role="survivor" data-idx="1">
-                <input type="text" class="ss-input" placeholder="Survivor 2" autocomplete="off">
+                <input type="text" class="ss-input" data-i18n-ph="surv2_ph" placeholder="Survivor 2" autocomplete="off">
                 <div class="ss-dropdown"></div>
               </div>
             </div>
             <div class="form-row s-row">
               <div class="searchable-select" data-role="survivor" data-idx="2">
-                <input type="text" class="ss-input" placeholder="Survivor 3" autocomplete="off">
+                <input type="text" class="ss-input" data-i18n-ph="surv3_ph" placeholder="Survivor 3" autocomplete="off">
                 <div class="ss-dropdown"></div>
               </div>
             </div>
             <div class="form-row s-row">
               <div class="searchable-select" data-role="survivor" data-idx="3">
-                <input type="text" class="ss-input" placeholder="Survivor 4" autocomplete="off">
+                <input type="text" class="ss-input" data-i18n-ph="surv4_ph" placeholder="Survivor 4" autocomplete="off">
                 <div class="ss-dropdown"></div>
               </div>
             </div>
           </div>
         </div>
 
-        <button class="btn-primary" id="predict-single">Predict</button>
+        <button class="btn-primary" id="predict-single" data-i18n="predict_btn">Predict</button>
       </div>
 
       <div class="card result-card" id="single-result">
-        <h2>Prediction</h2>
-        <div class="placeholder">Select a hunter and 4 survivors, then click Predict.</div>
+        <h2 data-i18n="prediction_title">Prediction</h2>
+        <div class="placeholder" data-i18n="select_prompt">Select a hunter and 4 survivors, then click Predict.</div>
         <div class="result-content hidden">
           <div class="result-summary" id="single-summary"></div>
           <div class="prob-bars" id="single-bars"></div>
@@ -85,32 +86,32 @@
 
       <!-- Team A -->
       <div class="card team-card">
-        <h2 class="team-a-label">Team A</h2>
+        <h2 class="team-a-label" data-i18n="team_a">Team A</h2>
         <div class="form-row">
-          <label>Hunter</label>
+          <label data-i18n="hunter_label">Hunter</label>
           <div class="searchable-select" id="ss-hunter-a">
-            <input type="text" class="ss-input" placeholder="Search hunter…" autocomplete="off">
+            <input type="text" class="ss-input" data-i18n-ph="search_hunter_ph" placeholder="Search hunter…" autocomplete="off">
             <div class="ss-dropdown"></div>
           </div>
         </div>
-        <label class="surv-label">Survivors (4)</label>
+        <label class="surv-label" data-i18n="survivors_label">Survivors (4)</label>
         <div id="box-survivors-a">
-          <div class="form-row s-row"><div class="searchable-select" data-team="a" data-idx="0"><input type="text" class="ss-input" placeholder="Survivor 1" autocomplete="off"><div class="ss-dropdown"></div></div></div>
-          <div class="form-row s-row"><div class="searchable-select" data-team="a" data-idx="1"><input type="text" class="ss-input" placeholder="Survivor 2" autocomplete="off"><div class="ss-dropdown"></div></div></div>
-          <div class="form-row s-row"><div class="searchable-select" data-team="a" data-idx="2"><input type="text" class="ss-input" placeholder="Survivor 3" autocomplete="off"><div class="ss-dropdown"></div></div></div>
-          <div class="form-row s-row"><div class="searchable-select" data-team="a" data-idx="3"><input type="text" class="ss-input" placeholder="Survivor 4" autocomplete="off"><div class="ss-dropdown"></div></div></div>
+          <div class="form-row s-row"><div class="searchable-select" data-team="a" data-idx="0"><input type="text" class="ss-input" data-i18n-ph="surv1_ph" placeholder="Survivor 1" autocomplete="off"><div class="ss-dropdown"></div></div></div>
+          <div class="form-row s-row"><div class="searchable-select" data-team="a" data-idx="1"><input type="text" class="ss-input" data-i18n-ph="surv2_ph" placeholder="Survivor 2" autocomplete="off"><div class="ss-dropdown"></div></div></div>
+          <div class="form-row s-row"><div class="searchable-select" data-team="a" data-idx="2"><input type="text" class="ss-input" data-i18n-ph="surv3_ph" placeholder="Survivor 3" autocomplete="off"><div class="ss-dropdown"></div></div></div>
+          <div class="form-row s-row"><div class="searchable-select" data-team="a" data-idx="3"><input type="text" class="ss-input" data-i18n-ph="surv4_ph" placeholder="Survivor 4" autocomplete="off"><div class="ss-dropdown"></div></div></div>
         </div>
       </div>
 
       <!-- Controls -->
       <div class="card controls-card">
-        <h2>Format</h2>
+        <h2 data-i18n="format_label">Format</h2>
         <div class="format-btns">
           <button class="fmt-btn active" data-rounds="3">Bo3</button>
           <button class="fmt-btn" data-rounds="5">Bo5</button>
           <button class="fmt-btn" data-rounds="7">Bo7</button>
         </div>
-        <button class="btn-primary" id="predict-box">Predict Series</button>
+        <button class="btn-primary" id="predict-box" data-i18n="predict_series_btn">Predict Series</button>
 
         <div id="box-result-summary" class="box-summary hidden">
           <div class="series-bar-wrap">
@@ -129,20 +130,20 @@
 
       <!-- Team B -->
       <div class="card team-card">
-        <h2 class="team-b-label">Team B</h2>
+        <h2 class="team-b-label" data-i18n="team_b">Team B</h2>
         <div class="form-row">
-          <label>Hunter</label>
+          <label data-i18n="hunter_label">Hunter</label>
           <div class="searchable-select" id="ss-hunter-b">
-            <input type="text" class="ss-input" placeholder="Search hunter…" autocomplete="off">
+            <input type="text" class="ss-input" data-i18n-ph="search_hunter_ph" placeholder="Search hunter…" autocomplete="off">
             <div class="ss-dropdown"></div>
           </div>
         </div>
-        <label class="surv-label">Survivors (4)</label>
+        <label class="surv-label" data-i18n="survivors_label">Survivors (4)</label>
         <div id="box-survivors-b">
-          <div class="form-row s-row"><div class="searchable-select" data-team="b" data-idx="0"><input type="text" class="ss-input" placeholder="Survivor 1" autocomplete="off"><div class="ss-dropdown"></div></div></div>
-          <div class="form-row s-row"><div class="searchable-select" data-team="b" data-idx="1"><input type="text" class="ss-input" placeholder="Survivor 2" autocomplete="off"><div class="ss-dropdown"></div></div></div>
-          <div class="form-row s-row"><div class="searchable-select" data-team="b" data-idx="2"><input type="text" class="ss-input" placeholder="Survivor 3" autocomplete="off"><div class="ss-dropdown"></div></div></div>
-          <div class="form-row s-row"><div class="searchable-select" data-team="b" data-idx="3"><input type="text" class="ss-input" placeholder="Survivor 4" autocomplete="off"><div class="ss-dropdown"></div></div></div>
+          <div class="form-row s-row"><div class="searchable-select" data-team="b" data-idx="0"><input type="text" class="ss-input" data-i18n-ph="surv1_ph" placeholder="Survivor 1" autocomplete="off"><div class="ss-dropdown"></div></div></div>
+          <div class="form-row s-row"><div class="searchable-select" data-team="b" data-idx="1"><input type="text" class="ss-input" data-i18n-ph="surv2_ph" placeholder="Survivor 2" autocomplete="off"><div class="ss-dropdown"></div></div></div>
+          <div class="form-row s-row"><div class="searchable-select" data-team="b" data-idx="2"><input type="text" class="ss-input" data-i18n-ph="surv3_ph" placeholder="Survivor 3" autocomplete="off"><div class="ss-dropdown"></div></div></div>
+          <div class="form-row s-row"><div class="searchable-select" data-team="b" data-idx="3"><input type="text" class="ss-input" data-i18n-ph="surv4_ph" placeholder="Survivor 4" autocomplete="off"><div class="ss-dropdown"></div></div></div>
         </div>
       </div>
 
@@ -156,12 +157,12 @@
     <!-- Half-level breakdown -->
     <div id="box-halves" class="panel-grid halves-grid hidden">
       <div class="card">
-        <h3>Half 1 — <span class="team-a-label">Team A</span> hunts <span class="team-b-label">Team B</span></h3>
+        <h3 id="half1-heading">Half 1 — <span class="team-a-label">Team A</span> hunts <span class="team-b-label">Team B</span></h3>
         <div class="prob-bars" id="half1-bars"></div>
         <table class="prob-table" id="half1-table"></table>
       </div>
       <div class="card">
-        <h3>Half 2 — <span class="team-b-label">Team B</span> hunts <span class="team-a-label">Team A</span></h3>
+        <h3 id="half2-heading">Half 2 — <span class="team-b-label">Team B</span> hunts <span class="team-a-label">Team A</span></h3>
         <div class="prob-bars" id="half2-bars"></div>
         <table class="prob-table" id="half2-table"></table>
       </div>
@@ -172,26 +173,26 @@
   <section id="tab-leaderboard" class="tab-panel">
     <div class="card leaderboard-card">
       <div class="lb-controls">
-        <input type="text" id="lb-search" placeholder="Search player…" class="lb-search">
+        <input type="text" id="lb-search" data-i18n-ph="search_player_ph" placeholder="Search player…" class="lb-search">
         <div class="role-btns">
-          <button class="role-btn active" data-role="hunter">Hunters</button>
-          <button class="role-btn" data-role="survivor">Survivors</button>
+          <button class="role-btn active" data-role="hunter" data-i18n="hunters_btn">Hunters</button>
+          <button class="role-btn" data-role="survivor" data-i18n="survivors_btn">Survivors</button>
         </div>
         <label class="min-games-label">
           <input type="checkbox" id="lb-min-games" checked>
-          30+ games only
+          <span data-i18n="min_games_label">30+ games only</span>
         </label>
       </div>
       <div class="lb-table-wrap">
         <table class="lb-table" id="lb-table">
           <thead>
             <tr>
-              <th class="sortable" data-col="rank">#</th>
-              <th class="sortable" data-col="id">Player</th>
-              <th class="sortable" data-col="role">Role</th>
-              <th class="sortable active" data-col="beta">Rating β</th>
-              <th class="sortable" data-col="nGames">Games</th>
-              <th class="sortable" data-col="lastSeen">Last Seen</th>
+              <th class="sortable" data-col="rank" data-i18n="col_rank">#</th>
+              <th class="sortable" data-col="id" data-i18n="col_player">Player</th>
+              <th class="sortable" data-col="role" data-i18n="col_role">Role</th>
+              <th class="sortable active" data-col="beta" data-i18n="col_rating">Rating β</th>
+              <th class="sortable" data-col="nGames" data-i18n="col_games">Games</th>
+              <th class="sortable" data-col="lastSeen" data-i18n="col_last_seen">Last Seen</th>
             </tr>
           </thead>
           <tbody id="lb-body"></tbody>
@@ -201,6 +202,7 @@
     </div>
   </section>
 
+  <script src="js/i18n.js"></script>
   <script src="js/data.js"></script>
   <script src="js/app.js"></script>
 </body>

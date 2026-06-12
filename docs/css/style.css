@@ -30,6 +30,25 @@ header {
   background: linear-gradient(135deg, #141829 0%, #1a1f33 100%);
   border-bottom: 1px solid var(--border);
   padding: 24px 32px 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.lang-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: .8rem;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 4px;
+  transition: border-color .15s, color .15s;
+}
+.lang-toggle:hover {
+  border-color: var(--accent-a);
+  color: var(--text);
 }
 .header-inner h1 {
   font-size: 1.8rem;
