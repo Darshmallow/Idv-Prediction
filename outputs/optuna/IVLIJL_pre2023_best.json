@@ -1,0 +1,9 @@
+{
+  "best_r2": 0.04127739667201136,
+  "best_params": {
+    "half_life_days": 744.7331179559101,
+    "l2_lambda": 3.065172586042206,
+    "threshold": 0
+  },
+  "label": "IVL+IJL pre"
+}

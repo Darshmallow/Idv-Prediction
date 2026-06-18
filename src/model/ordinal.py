@@ -179,16 +179,33 @@ def _objective_and_grad(
     P: int,
     l2_lambda: float,
     prior_mean: np.ndarray | None = None,
+    fixed_theta: np.ndarray | None = None,
 ) -> tuple[float, np.ndarray]:
     """
     Compute (NLL + ridge) and its gradient.
 
-    params layout
-    -------------
+    params layout (fixed_theta=None)
+    ---------------------------------
     [β (P,),  a, b_1, b_2, b_3]    →  shape (P + 4,)
+
+    params layout (fixed_theta given)
+    ----------------------------------
+    [β (P,)]    →  shape (P,)   — θ held constant, only β is optimised.
 
     The ridge term is  0.5 * λ * ‖β − μ‖²  where μ defaults to zeros.
     """
+    if fixed_theta is not None:
+        beta = params          # params is just β
+        th   = fixed_theta
+        eta  = X @ beta
+
+        log_p, d_eta, _ = _logp_and_grad(eta, th, n_obs)
+
+        beta_centred = beta if prior_mean is None else beta - prior_mean
+        nll    = -np.sum(w * log_p) + 0.5 * l2_lambda * float(beta_centred @ beta_centred)
+        g_beta = -np.asarray(X.T @ (w * d_eta)).ravel() + l2_lambda * beta_centred
+        return float(nll), g_beta
+
     beta = params[:P]
     ab   = params[P:]
     th   = _ab_to_theta(ab)
@@ -210,13 +227,8 @@ def _objective_and_grad(
     g_theta = -(w[:, None] * d_th).sum(axis=0)
 
     # Chain through a, b_1, b_2, b_3
-    # θ_1 = a
-    # θ_2 = a + e_1                where e_k = exp(b_k)
-    # θ_3 = a + e_1 + e_2
-    # θ_4 = a + e_1 + e_2 + e_3
     e        = np.exp(ab[1:])                 # (3,)
     g_a      = g_theta.sum()
-    # b_k affects θ_{k+1}, θ_{k+2}, ...
     g_b      = np.array([
         e[0] * g_theta[1:].sum(),
         e[1] * g_theta[2:].sum(),
@@ -238,6 +250,7 @@ def fit_ordinal(
     l2_lambda: float = 1.0,
     init_beta: np.ndarray | None = None,
     init_theta: np.ndarray | None = None,
+    fixed_theta: np.ndarray | None = None,
     maxiter: int = 1000,
     verbose: bool = False,
     weights: np.ndarray | None = None,
@@ -290,26 +303,38 @@ def fit_ordinal(
 
     # Initialisation
     beta0  = np.zeros(P) if init_beta is None else init_beta.copy()
-    theta0 = init_thresholds(m) if init_theta is None else init_theta.copy()
-    ab0    = _theta_to_ab(theta0)
-    x0     = np.concatenate([beta0, ab0])
 
     if prior_mean is not None:
         prior_mean = np.asarray(prior_mean, dtype=np.float64)
         if len(prior_mean) != P:
             raise ValueError(f"prior_mean length {len(prior_mean)} != P={P}")
 
-    result = minimize(
-        _objective_and_grad,
-        x0,
-        args=(X, n_obs, w, P, l2_lambda, prior_mean),
-        method="L-BFGS-B",
-        jac=True,
-        options=dict(maxiter=maxiter, ftol=1e-9, gtol=1e-7),
-    )
-
-    beta_hat  = result.x[:P]
-    theta_hat = _ab_to_theta(result.x[P:])
+    if fixed_theta is not None:
+        # θ is held constant — only optimise β
+        theta_hat = np.asarray(fixed_theta, dtype=np.float64)
+        result = minimize(
+            _objective_and_grad,
+            beta0,
+            args=(X, n_obs, w, P, l2_lambda, prior_mean, theta_hat),
+            method="L-BFGS-B",
+            jac=True,
+            options=dict(maxiter=maxiter, ftol=1e-9, gtol=1e-7),
+        )
+        beta_hat = result.x
+    else:
+        theta0 = init_thresholds(m) if init_theta is None else init_theta.copy()
+        ab0    = _theta_to_ab(theta0)
+        x0     = np.concatenate([beta0, ab0])
+        result = minimize(
+            _objective_and_grad,
+            x0,
+            args=(X, n_obs, w, P, l2_lambda, prior_mean, None),
+            method="L-BFGS-B",
+            jac=True,
+            options=dict(maxiter=maxiter, ftol=1e-9, gtol=1e-7),
+        )
+        beta_hat  = result.x[:P]
+        theta_hat = _ab_to_theta(result.x[P:])
 
     return {
         "beta":         beta_hat,

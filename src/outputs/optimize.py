@@ -220,19 +220,70 @@ def _eval_fold_role(
     role: str,
     weights: np.ndarray,
     l2_lambda: float,
+    threshold: int = 0,
 ) -> tuple[float, float]:
     """
-    Role-restricted linear fit + predict.
+    Role-restricted ordinal fit with θ fixed to the combined model's thresholds.
 
-    Uses only hunter columns (or only survivor columns) in the design
-    matrix.  The closed-form ridge is reused.  (Ordinal + role-only is
-    deferred — open an issue if you need it.)
+    Fits the combined ordinal model first (cheaply, same training data) to
+    obtain θ, then optimises only the role-restricted β with θ held constant.
+    This lets role-only analysis use the ordinal link function without
+    learning separate thresholds per role.
     """
-    idx       = build_role_index(train, role)
-    X_tr, y   = build_role_design(train, role, idx)
-    beta      = fit(X_tr, y, weights, l2_lambda)
+    from model.ordinal import fit_ordinal, predict_expected_margin
+    from scipy.special import expit
+
+    # Step 1: fit combined model to get θ
+    combined = fit_with_new_player_prior(
+        train, model="ordinal", l2_lambda=l2_lambda,
+        threshold=threshold, weights=weights,
+    )
+    _, _, combined_res = combined
+    theta = combined_res["theta"]
+
+    # Step 2: role-only β with fixed θ
+    idx        = build_role_index(train, role)
+    X_tr, y_tr = build_role_design(train, role, idx)
+    n_obs_tr   = (train.reset_index(drop=True)["n_escaped"]).to_numpy(dtype=int)
+
+    res = fit_ordinal(
+        train,
+        weights=weights,
+        l2_lambda=l2_lambda,
+        fixed_theta=theta,
+    )
+    # Override player_index with the role-restricted one and refit β only
+    # via the design matrix (fit_ordinal uses the full joint index — we need
+    # role-restricted instead)
+    from model.ordinal import _objective_and_grad
+    from scipy.optimize import minimize as _minimize
+
+    n_obs_tr = train.reset_index(drop=True)["n_escaped"].to_numpy(dtype=int)
+    beta0    = np.zeros(X_tr.shape[1])
+    result   = _minimize(
+        _objective_and_grad,
+        beta0,
+        args=(X_tr, n_obs_tr, weights, X_tr.shape[1], l2_lambda, None, theta),
+        method="L-BFGS-B",
+        jac=True,
+        options=dict(maxiter=1000, ftol=1e-9, gtol=1e-7),
+    )
+    beta_hat = result.x
+
+    # Predict on test using role-restricted β + fixed θ
     X_te, y_te = build_role_design(test, role, idx)
-    yhat      = predict(X_te, beta)
+    eta_te     = np.asarray(X_te @ beta_hat).ravel()
+    u          = expit(theta[None, :] - eta_te[:, None])
+    probs      = np.column_stack([
+        u[:, 0],
+        u[:, 1] - u[:, 0],
+        u[:, 2] - u[:, 1],
+        u[:, 3] - u[:, 2],
+        1.0 - u[:, 3],
+    ])
+    probs  = np.clip(probs, 0.0, 1.0)
+    yhat   = probs @ np.arange(5) - 2.0
+
     rmse = float(np.sqrt(np.mean((y_te - yhat) ** 2)))
     null = float(np.sqrt(np.mean(y_te ** 2)))
     return rmse, null
@@ -262,7 +313,7 @@ def evaluate(
         if role == "both":
             rmse, null = _eval_fold_full(train, test, w, l2_lambda, threshold, model)
         else:
-            rmse, null = _eval_fold_role(train, test, role, w, l2_lambda)
+            rmse, null = _eval_fold_role(train, test, role, w, l2_lambda, threshold)
 
         rmses.append(rmse)
         nulls.append(null)
@@ -305,8 +356,8 @@ def make_objective(
                          lambda t: t.suggest_int("threshold", 0, 20))
 
         if role != "both":
-            # Role-only path: model class is forced to linear (no ordinal path).
-            model = "linear"
+            # Role-only path uses ordinal with fixed θ from combined model.
+            model = "ordinal"
         elif fixed_model is not None:
             model = fixed_model
         elif "model" in fixed_params:

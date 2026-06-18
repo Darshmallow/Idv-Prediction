@@ -1,0 +1,9 @@
+{
+  "best_r2": 0.14444261934239366,
+  "best_params": {
+    "half_life_days": 829.5471481705191,
+    "l2_lambda": 4.417986632998434,
+    "threshold": 20
+  },
+  "label": "TOP TIERS post"
+}

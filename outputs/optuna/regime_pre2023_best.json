@@ -1,0 +1,26 @@
+{
+  "best_r2": 0.04003255759764346,
+  "best_params": {
+    "half_life_days": 750.5999689443812,
+    "l2_lambda": 2.2210258610579214,
+    "threshold": 3
+  },
+  "fixed_params": {},
+  "n_trials": 80,
+  "elapsed_s": 1224.548751115799,
+  "split_strategy": "time_series",
+  "fixed_model": "ordinal",
+  "train_tiers": [
+    "IVL",
+    "IJL",
+    "COA"
+  ],
+  "test_tiers": [
+    "IVL",
+    "IJL",
+    "COA"
+  ],
+  "role": "both",
+  "start_date": null,
+  "end_date": "2023-10-14"
+}

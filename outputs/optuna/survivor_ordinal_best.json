@@ -1,0 +1,10 @@
+{
+  "best_r2": 0.05612046479103028,
+  "best_params": {
+    "half_life_days": 125.20818109764332,
+    "l2_lambda": 1.0351029070280406,
+    "threshold": 2
+  },
+  "role": "survivor",
+  "model": "ordinal_fixed_theta"
+}

@@ -1,0 +1,9 @@
+{
+  "best_r2": 0.04912940087726614,
+  "best_params": {
+    "half_life_days": 276.7383253299089,
+    "l2_lambda": 2.581162405132832,
+    "threshold": 18
+  },
+  "label": "IVL pre"
+}

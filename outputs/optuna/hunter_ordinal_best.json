@@ -1,0 +1,10 @@
+{
+  "best_r2": 0.06534082688436571,
+  "best_params": {
+    "half_life_days": 164.70908728680257,
+    "l2_lambda": 3.2232763078338738,
+    "threshold": 4
+  },
+  "role": "hunter",
+  "model": "ordinal_fixed_theta"
+}

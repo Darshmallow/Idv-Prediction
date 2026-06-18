@@ -1,0 +1,9 @@
+{
+  "best_r2": 0.11572488641532375,
+  "best_params": {
+    "half_life_days": 59.217539202482705,
+    "l2_lambda": 2.7812039938693274,
+    "threshold": 17
+  },
+  "label": "IVL post"
+}
